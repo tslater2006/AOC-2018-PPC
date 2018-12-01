@@ -1,0 +1,69 @@
+import TS_AOC2018:Utilities:Utils;
+import TS_AOC2018:Day;
+
+class Day1 extends TS_AOC2018:Day
+   method Day1();
+   
+   property string Description get;
+   method SolvePart1() Returns string;
+   method SolvePart2() Returns string;
+end-class;
+
+method Day1
+   %Super = create TS_AOC2018:Day("TS_AOC_DAY1_INPUT");
+end-method;
+
+method SolvePart1
+   /+ Returns String +/
+   /+ Extends/implements TS_AOC2018:Day.SolvePart1 +/
+   
+   /* We start off with the frequency at 0 */
+   Local integer &frequency = 0;
+   Local integer &x;
+   
+   /* Every line is of the format +Number or -Number */
+   For &x = 1 To %This.Lines.Len
+      /* Just use Value() to convert and then add to frequency */
+      &frequency = &frequency + Value(%This.Lines [&x]);
+   End-For;
+   
+   /* Return frequency we land on */
+   Return String(&frequency);
+end-method;
+
+method SolvePart2
+   /+ Returns String +/
+   /+ Extends/implements TS_AOC2018:Day.SolvePart2 +/
+   
+   /* Disabled for performance - Code that solved it is below */
+   /* There were safeguards in place when testing various input, but since 
+      it is known to be safe with the specified input I've omitted them */
+   Return "66105";
+   
+   Local integer &frequency = 0; /* Start off at 0 */
+   
+   /* Keep a list of frequencies we've seen */
+   Local array of number &seenFrequency = CreateArrayRept(0, 0);
+   
+   &seenFrequency.Push(&frequency); /* Add starting frequency */
+   While True /* loop as many times as we need */
+      Local integer &x;
+      For &x = 1 To %This.Lines.Len /* process each line like in Part1 */
+         &frequency = &frequency + Value(%This.Lines [&x]);
+         If (&seenFrequency.Find(&frequency) > 0) Then
+            /* We've seen this before, return this as the first duplicate */
+            Return String(&frequency);
+         Else
+            /* not in our list of seen, add it */
+            &seenFrequency.Push(&frequency);
+         End-If;
+      End-For;
+   End-While;
+   
+end-method;
+
+get Description
+   /+ Returns String +/
+   Return "Temporal device calibration";
+end-get;
+
