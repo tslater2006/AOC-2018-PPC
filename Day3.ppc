@@ -1,0 +1,277 @@
+import TS_AOC2018:Day;
+import TS_AOC2018:Support:FabricClaim;
+
+class Day3 extends TS_AOC2018:Day
+   method Day3();
+   
+   property string Description get;
+   method SolvePart1() Returns string;
+   method SolvePart2() Returns string;
+   
+private
+   method ClaimOverlaps(&claimA As TS_AOC2018:Support:FabricClaim, &claimB As TS_AOC2018:Support:FabricClaim) Returns boolean;
+   method SplitClaim(&claimA As TS_AOC2018:Support:FabricClaim, &claimB As TS_AOC2018:Support:FabricClaim) Returns array of TS_AOC2018:Support:FabricClaim;
+   method ClaimContained(&claimA As TS_AOC2018:Support:FabricClaim, &claimB As TS_AOC2018:Support:FabricClaim) Returns boolean;
+   method GetIntersection(&claimA As TS_AOC2018:Support:FabricClaim, &claimB As TS_AOC2018:Support:FabricClaim) Returns TS_AOC2018:Support:FabricClaim;
+   
+   instance array of TS_AOC2018:Support:FabricClaim &claimList;
+   instance number &claimedArea;
+end-class;
+
+method Day3
+   %Super = create TS_AOC2018:Day("TS_AOC_DAY3_INPUT");
+   
+   /* first we need to parse input to list of claims */
+   &claimList = CreateArrayRept(create TS_AOC2018:Support:FabricClaim(), 0);
+   Local integer &x;
+   For &x = 1 To %This.Lines.Len
+      Local array of string &claimParts = Split(%This.Lines [&x], " ");
+      Local TS_AOC2018:Support:FabricClaim &currentClaim = create TS_AOC2018:Support:FabricClaim();
+      &currentClaim.ClaimID = Value(Substitute(&claimParts [1], "#", ""));
+      
+      Local array of string &claimCoords = Split(Substitute(&claimParts [3], ":", ""), ",");
+      Local array of string &dimensions = Split(&claimParts [4], "x");
+      
+      &currentClaim.X = Value(&claimCoords [1]);
+      &currentClaim.Y = Value(&claimCoords [2]);
+      
+      &currentClaim.Width = Value(&dimensions [1]);
+      &currentClaim.Height = Value(&dimensions [2]);
+      &claimList.Push(&currentClaim);
+   End-For;
+end-method;
+
+method SolvePart1
+   /+ Returns String +/
+   /+ Extends/implements TS_AOC2018:Day.SolvePart1 +/
+   
+   /* Disable for perf */
+   Return "110546";
+   
+   Local integer &x, &y, &z, &q;
+   Local array of TS_AOC2018:Support:FabricClaim &overlaps = CreateArrayRept(create TS_AOC2018:Support:FabricClaim(), 0);
+   
+   Local array of TS_AOC2018:Support:FabricClaim &processedList = CreateArrayRept(create TS_AOC2018:Support:FabricClaim(), 0);
+   
+   /* Go through each claim, and capture the overlapping region if any */
+   For &x = 2 To &claimList.Len
+      For &y = 1 To &x - 1
+         If (%This.ClaimContained(&claimList [&y], &claimList [&x])) Then
+            /* the entirety is taken up, no need to include this at all, just skip it */
+            &overlaps.Push(&claimList [&x]);
+            Break;
+         End-If;
+         If (%This.ClaimOverlaps(&claimList [&x], &claimList [&y])) Then
+            Local TS_AOC2018:Support:FabricClaim &intersect = %This.GetIntersection(&claimList [&x], &claimList [&y]);
+            Local boolean &include = True;
+            For &q = 1 To &overlaps.Len
+               If &intersect.Equals(&overlaps [&q]) Then
+                  &include = False;
+                  Break;
+               End-If;
+            End-For;
+            If (&include) Then
+               &overlaps.Push(&intersect);
+            End-If;
+         End-If;
+      End-For;
+   End-For;
+   
+   
+   &processedList.Push(&overlaps.Pop());
+   Local array of TS_AOC2018:Support:FabricClaim &needsRecheck = CreateArrayRept(create TS_AOC2018:Support:FabricClaim(), 0);
+   
+   Repeat
+      While &needsRecheck.Len > 0
+         &overlaps.Push(&needsRecheck.Pop());
+      End-While;
+      
+      For &x = &overlaps.Len To 1 Step - 1
+         Local boolean &fullyContained = False;
+         Local TS_AOC2018:Support:FabricClaim &curClaim = &overlaps.Pop();
+         For &y = 1 To &processedList.Len
+            
+            If (%This.ClaimContained(&processedList [&y], &curClaim)) Then
+               &fullyContained = True;
+               Break;
+            End-If;
+            
+            Local array of TS_AOC2018:Support:FabricClaim &splitParts = %This.SplitClaim(&curClaim, &processedList [&y]);
+            For &z = 1 To &splitParts.Len
+               &needsRecheck.Push(&splitParts [&z]);
+            End-For;
+            If (&splitParts.Len > 0) Then
+               Break;
+            End-If;
+         End-For;
+         If (&needsRecheck.Len = 0 And
+               &fullyContained = False) Then
+            &processedList.Push(&curClaim);
+         Else
+            Break;
+         End-If;
+      End-For;
+   Until &needsRecheck.Len = 0 And
+      &overlaps.Len = 0;
+   
+   Local integer &sum;
+   For &x = 1 To &processedList.Len
+      &sum = &sum + &processedList [&x].Width * &processedList [&x].Height;
+   End-For;
+   /* now that we have the regions, we need to flatten them all */
+   Return String(&sum);
+end-method;
+
+method SolvePart2
+   /+ Returns String +/
+   /+ Extends/implements TS_AOC2018:Day.SolvePart2 +/
+   Local integer &x, &y;
+   For &x = 1 To &claimList.Len
+      
+      Local TS_AOC2018:Support:FabricClaim &currentClaim = &claimList [&x];
+      Local boolean &hasOverlap = False;
+      For &y = 1 To &claimList.Len
+         If (&x <> &y) Then
+            Local TS_AOC2018:Support:FabricClaim &testClaim = &claimList [&y];
+            
+            If %This.ClaimOverlaps(&currentClaim, &testClaim) Or
+                  %This.ClaimContained(&testClaim, &currentClaim) Then
+               &hasOverlap = True;
+               Break;
+            End-If;
+            
+         End-If;
+         
+      End-For;
+      If (&hasOverlap = False) Then
+         Return String(&currentClaim.ClaimID);
+      End-If;
+   End-For;
+   Return "??";
+end-method;
+
+method SplitClaim
+   /+ &claimA as TS_AOC2018:Support:FabricClaim, +/
+   /+ &claimB as TS_AOC2018:Support:FabricClaim +/
+   /+ Returns Array of TS_AOC2018:Support:FabricClaim +/
+   Local array of TS_AOC2018:Support:FabricClaim &result = CreateArrayRept(create TS_AOC2018:Support:FabricClaim(), 0);
+   
+   /*  if (rectB == null || !intersects(rectA, rectB) || contains(rectB, rectA))
+            return new Rectangle[0];*/
+   If &claimB = Null Or
+         %This.ClaimOverlaps(&claimA, &claimB) = False Or
+         %This.ClaimContained(&claimB, &claimA) = True Then
+      Return &result;
+   End-If;
+   
+   
+   Local TS_AOC2018:Support:FabricClaim &top, &bottom, &left, &right;
+   
+   Local integer &raHeight = &claimB.Y - &claimA.Y;
+   If (&raHeight > 0) Then
+      &top = create TS_AOC2018:Support:FabricClaim();
+      &top.X = &claimA.X;
+      &top.Y = &claimA.Y;
+      &top.Width = &claimA.Width;
+      &top.Height = &raHeight;
+      &result.Push(&top);
+   End-If;
+   
+   Local integer &rbY = &claimB.Y + &claimB.Height;
+   Local integer &rbHeight = &claimA.Height - (&rbY - &claimA.Y);
+   If (&rbHeight > 0 And
+         &rbY < &claimA.Y + &claimA.Height) Then
+      &bottom = create TS_AOC2018:Support:FabricClaim();
+      &bottom.X = &claimA.X;
+      &bottom.Y = &rbY;
+      &bottom.Width = &claimA.Width;
+      &bottom.Height = &rbHeight;
+      &result.Push(&bottom);
+   End-If;
+   
+   Local integer &rectAYH = &claimA.Y + &claimA.Height;
+   Local integer &y1;
+   If (&claimB.Y > &claimA.Y) Then
+      &y1 = &claimB.Y;
+   Else
+      &y1 = &claimA.Y;
+   End-If;
+   Local integer &y2;
+   If (&rbY < &rectAYH) Then
+      &y2 = &rbY;
+   Else
+      &y2 = &rectAYH;
+   End-If;
+   Local integer &rcHeight = &y2 - &y1;
+   
+   Local integer &rcWidth = &claimB.X - &claimA.X;
+   If (&rcWidth > 0 And
+         &rcHeight > 0) Then
+      &left = create TS_AOC2018:Support:FabricClaim();
+      &left.X = &claimA.X;
+      &left.Y = &y1;
+      &left.Width = &rcWidth;
+      &left.Height = &rcHeight;
+      &result.Push(&left);
+   End-If;
+   
+   Local integer &rbX = &claimB.X + &claimB.Width;
+   Local integer &rdWidth = &claimA.Width - (&rbX - &claimA.X);
+   If (&rdWidth > 0) Then
+      &right = create TS_AOC2018:Support:FabricClaim();
+      &right.X = &rbX;
+      &right.Y = &y1;
+      &right.Width = &rdWidth;
+      &right.Height = &rcHeight;
+      &result.Push(&right);
+   End-If;
+   Return &result;
+end-method;
+
+method ClaimOverlaps
+   /+ &claimA as TS_AOC2018:Support:FabricClaim, +/
+   /+ &claimB as TS_AOC2018:Support:FabricClaim +/
+   /+ Returns Boolean +/
+   
+   Return (((&claimB.X + &claimB.Width <= &claimA.X) Or
+      (&claimB.Y + &claimB.Height <= &claimA.Y) Or
+      (&claimB.X >= &claimA.X + &claimA.Width) Or
+      (&claimB.Y >= &claimA.Y + &claimA.Height)) = False);
+   
+end-method;
+
+method ClaimContained
+   /+ &claimA as TS_AOC2018:Support:FabricClaim, +/
+   /+ &claimB as TS_AOC2018:Support:FabricClaim +/
+   /+ Returns Boolean +/
+   Return (((&claimB.X >= &claimA.X) And
+      (&claimB.Y >= &claimA.Y) And
+      (&claimB.X + &claimB.Width <= &claimA.X + &claimA.Width) And
+      (&claimB.Y + &claimB.Height <= &claimA.Y + &claimA.Height)) = True);
+   
+end-method;
+
+method GetIntersection
+   /+ &claimA as TS_AOC2018:Support:FabricClaim, +/
+   /+ &claimB as TS_AOC2018:Support:FabricClaim +/
+   /+ Returns TS_AOC2018:Support:FabricClaim +/
+   
+   Local integer &l = Max(&claimA.X, &claimB.X);
+   Local integer &r = Min(&claimA.X + &claimA.Width, &claimB.X + &claimB.Width);
+   Local integer &b = Max(&claimA.Y, &claimB.Y);
+   Local integer &t = Min(&claimA.Y + &claimA.Height, &claimB.Y + &claimB.Height);
+   
+   Local TS_AOC2018:Support:FabricClaim &overlap = create TS_AOC2018:Support:FabricClaim();
+   &overlap.X = &l;
+   &overlap.Y = &b;
+   &overlap.Width = &r - &l;
+   &overlap.Height = &t - &b;
+   
+   Return &overlap;
+end-method;
+
+get Description
+   /+ Returns String +/
+   Return "No Matter How You Slice It";
+end-get;
+
