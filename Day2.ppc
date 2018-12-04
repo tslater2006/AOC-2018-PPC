@@ -1,0 +1,86 @@
+import TS_AOC2018:Utilities:Utils;
+import TS_AOC2018:Day;
+
+class Day2 extends TS_AOC2018:Day
+   method Day2();
+   
+   property string Description get;
+   method SolvePart1() Returns string;
+   method SolvePart2() Returns string;
+end-class;
+
+method Day2
+   %Super = create TS_AOC2018:Day("TS_AOC_DAY2_INPUT");
+end-method;
+
+method SolvePart1
+   /+ Returns String +/
+   /+ Extends/implements TS_AOC2018:Day.SolvePart1 +/
+   
+   Local integer &x, &y;
+   Local integer &twoLetterCount, &threeLetterCount;
+   
+   For &x = 1 To %This.Lines.Len
+      Local array of number &letterCount = CreateArrayRept(0, 26);
+      Local array of string &chars = Split(%This.Lines [&x], "");
+      
+      For &y = 1 To &chars.Len
+         &letterCount [Code(&chars [&y]) - 96] = &letterCount [Code(&chars [&y]) - 96] + 1;
+      End-For;
+      
+      For &y = 1 To &letterCount.Len
+         If (&letterCount [&y] = 2) Then
+            &twoLetterCount = &twoLetterCount + 1;
+            Break;
+         End-If;
+      End-For;
+      
+      For &y = 1 To &letterCount.Len
+         If (&letterCount [&y] = 3) Then
+            &threeLetterCount = &threeLetterCount + 1;
+            Break;
+         End-If;
+      End-For;
+      
+   End-For;
+   Return String(&twoLetterCount * &threeLetterCount);
+end-method;
+
+method SolvePart2
+   /+ Returns String +/
+   /+ Extends/implements TS_AOC2018:Day.SolvePart2 +/
+   
+   Local integer &x, &y, &x1, &y1;
+   For &x = 1 To %This.Lines.Len
+      For &y = 1 To %This.Lines.Len
+         Local integer &diffCount = 0;
+         &diffCount = 0;
+         Local array of string &chars1 = Split(%This.Lines [&x], "");
+         Local array of string &chars2 = Split(%This.Lines [&y], "");
+         For &x1 = 1 To &chars1.Len
+            If (&chars1 [&x1] <> &chars2 [&x1]) Then
+               &diffCount = &diffCount + 1;
+            End-If;
+         End-For;
+         If (&diffCount = 1) Then
+            Local array of string &matchingChars = CreateArrayRept("", 0);
+            
+            For &x1 = 1 To &chars1.Len
+               If (&chars1 [&x1] = &chars2 [&x1]) Then
+                  &matchingChars.Push(&chars1 [&x1]);
+               End-If;
+            End-For;
+            Return &matchingChars.Join("", "", "");
+         End-If;
+      End-For;
+   End-For;
+   
+   Return "??";
+end-method;
+
+
+get Description
+   /+ Returns String +/
+   Return "Inventory Management System";
+end-get;
+
