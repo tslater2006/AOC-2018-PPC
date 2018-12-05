@@ -1,0 +1,136 @@
+import TS_AOC2018:Support:Guard;
+import TS_AOC2018:Day;
+
+class Day5 extends TS_AOC2018:Day
+   method Day5();
+   
+   property string Description get;
+   method SolvePart1() Returns string;
+   method SolvePart2() Returns string;
+   
+private
+   method ParseInput();
+   method ReactChain(&charList As array of number, &omitLetter As number) Returns array of number;
+   method IsLower(&s As number) Returns boolean;
+   method GetLetter(&s As number) Returns integer;
+   
+   instance array of number &chars;
+   
+end-class;
+
+method Day5
+   %Super = create TS_AOC2018:Day("TS_AOC_DAY5_INPUT");
+   
+   %This.ParseInput();
+   
+end-method;
+
+method ParseInput
+   Local integer &x;
+   Local array of string &charList = Split(%This.Lines [1], "");
+   
+   &chars = CreateArrayRept(0, &charList.Len);
+   
+   For &x = 1 To &charList.Len
+      &chars [&x] = Code(&charList [&x]);
+   End-For;
+   
+end-method;
+
+method ReactChain
+   /+ &charList as Array of Number, +/
+   /+ &omitLetter as Number +/
+   /+ Returns Array of Number +/
+   Local array of number &result = CreateArrayRept(0, 0);
+   Local integer &x;
+   For &x = 1 To &charList.Len
+      If (%This.GetLetter(&charList [&x]) = %This.GetLetter(&omitLetter)) Then
+         Continue;
+      End-If;
+      If (&result.Len > 0) Then
+         If (%This.GetLetter(&charList [&x]) = %This.GetLetter(&result [&result.Len])) Then
+            /* they are the same letter */
+            If (%This.IsLower(&charList [&x]) <> %This.IsLower(&result [&result.Len])) Then
+               &result.Pop();
+            Else
+               &result.Push(&chars [&x]);
+            End-If;
+         Else
+            &result.Push(&chars [&x]);
+         End-If;
+      Else
+         &result.Push(&chars [&x]);
+      End-If;
+   End-For;
+   
+   Return &result;
+end-method;
+
+method SolvePart1
+   /+ Returns String +/
+   /+ Extends/implements TS_AOC2018:Day.SolvePart1 +/
+   
+   Return String(%This.ReactChain(&chars, 0).Len);
+   
+end-method;
+
+/* This exploits knowledge that we don't exceed a frequency value of 200,000 */
+method SolvePart2
+   /+ Returns String +/
+   /+ Extends/implements TS_AOC2018:Day.SolvePart2 +/
+   Local integer &smallestChain;
+   Local integer &bestLetter;
+   Local integer &x;
+   
+   &smallestChain = %This.ReactChain(&chars, 97).Len;
+   &bestLetter = 97;
+   
+   For &x = 98 To (97 + 25)
+      
+      Local integer &currentChainLen = %This.ReactChain(&chars, &x).Len;
+      If (&currentChainLen < &smallestChain) Then
+         &smallestChain = &currentChainLen;
+         &bestLetter = &x;
+      End-If;
+      
+   End-For;
+   
+   Return String(&smallestChain);
+end-method;
+
+method IsLower
+   /+ &s as Number +/
+   /+ Returns Boolean +/
+   
+   If (&s >= 65 And
+         &s <= 90) Then
+      Return False;
+   Else
+      If (&s >= 97 And
+            &s <= 122) Then
+         Return True;
+      Else
+         Return False;
+      End-If;
+   End-If;
+   
+end-method;
+
+method GetLetter
+   /+ &s as Number +/
+   /+ Returns Integer +/
+   If (&s = 0) Then
+      Return 0;
+   End-If;
+   If %This.IsLower(&s) Then
+      Return &s - 96;
+   Else
+      Return &s - 64;
+   End-If;
+end-method;
+
+get Description
+   /+ Returns String +/
+   Return "Alchemical Reduction";
+end-get;
+
