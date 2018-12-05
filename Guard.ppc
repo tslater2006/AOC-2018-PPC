@@ -1,0 +1,12 @@
+/* Helper class for Day 4 */
+class Guard
+   property string ID;
+   property array of number Minutes;
+   property integer FallAsleep;
+   method Guard()
+end-class;
+
+method Guard
+   %This.Minutes = CreateArrayRept(0, 60);
+end-method;
+
