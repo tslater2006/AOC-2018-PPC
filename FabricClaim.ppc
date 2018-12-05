@@ -1,0 +1,26 @@
+/* Helper class for Day 3 */
+class FabricClaim
+   property integer ClaimID;
+   property integer X;
+   property integer Y;
+   property integer Width;
+   property integer Height;
+   
+   method ToString() Returns string;
+   method Equals(&other As TS_AOC2018:Support:FabricClaim) Returns boolean;
+end-class;
+
+method ToString
+   /+ Returns String +/
+   Return "#" | %This.ClaimID | " @ " | %This.X | "," | %This.Y | ": " | %This.Width | "x" | %This.Height;
+end-method;
+
+method Equals
+   /+ &other as TS_AOC2018:Support:FabricClaim +/
+   /+ Returns Boolean +/
+   Return (%This.X = &other.X And
+      %This.Y = &other.Y And
+      %This.Width = &other.Width And
+      %This.Height = &other.Height);
+end-method;
+
