@@ -1,0 +1,143 @@
+import TS_AOC2018:Support:Guard;
+import TS_AOC2018:Day;
+
+class Day4 extends TS_AOC2018:Day
+   method Day4();
+   
+   property string Description get;
+   method SolvePart1() Returns string;
+   method SolvePart2() Returns string;
+   
+private
+   
+   method GetGuardByID(&id As string) Returns TS_AOC2018:Support:Guard;
+   method ParseGuards();
+   
+   instance TS_AOC2018:Support:Guard &activeGuard;
+   instance array of TS_AOC2018:Support:Guard &guards;
+   
+end-class;
+
+method Day4
+   %Super = create TS_AOC2018:Day("TS_AOC_DAY4_INPUT");
+   &guards = CreateArrayRept(create TS_AOC2018:Support:Guard(), 0);
+   
+   %This.ParseGuards();
+   
+end-method;
+
+method ParseGuards
+   Local integer &x, &y, &z;
+   %This.Lines.Sort("A");
+   For &x = 1 To %This.Lines.Len
+      If (Find("begins shift", %This.Lines [&x]) > 0) Then
+         Local string &guardID = Split(Split(%This.Lines [&x], "#")[2], " ")[1];
+         Rem %Response.Write("Finding guard: " | &guardID | "<br />");
+         &activeGuard = %This.GetGuardByID(&guardID);
+         Continue;
+      End-If;
+      
+      If (Find("asleep", %This.Lines [&x]) > 0) Then
+         /* active guard fell asleep */
+         Local string &sleepTime = Split(Split(%This.Lines [&x], ":")[2], "]")[1];
+         Rem %Response.Write("Guard #" | &activeGuard.ID | " fell asleep at: " | &sleepTime | "<br />");
+         &activeGuard.FallAsleep = Value(&sleepTime);
+         Continue;
+      End-If;
+      
+      If (Find("wakes", %This.Lines [&x]) > 0) Then
+         Local string &wakeTimeStr = Split(Split(%This.Lines [&x], ":")[2], "]")[1];
+         Rem %Response.Write("Guard #" | &activeGuard.ID | " woke up at: " | &wakeTimeStr | "<br />");
+         
+         Local integer &wakeTime = Value(&wakeTimeStr);
+         For &y = &activeGuard.FallAsleep To &wakeTime - 1
+            Rem %Response.Write("Marking minute " | &y | " as asleep<br />");
+            &activeGuard.Minutes [&y + 1] = &activeGuard.Minutes [&y + 1] + 1;
+         End-For;
+         
+      End-If;
+   End-For;
+end-method;
+
+method SolvePart1
+   /+ Returns String +/
+   /+ Extends/implements TS_AOC2018:Day.SolvePart1 +/
+   Local integer &x, &y, &z;
+   
+   Local TS_AOC2018:Support:Guard &sleepiestGuard;
+   Local integer &maxSleep;
+   
+   For &x = 1 To &guards.Len
+      Local integer &totalSleep = 0;
+      For &y = 1 To &guards [&x].Minutes.Len
+         &totalSleep = &totalSleep + &guards [&x].Minutes [&y];
+      End-For;
+      If (&totalSleep > &maxSleep) Then
+         &maxSleep = &totalSleep;
+         &sleepiestGuard = &guards [&x];
+      End-If;
+   End-For;
+   
+   Local integer &sleepiestMinute = 1;
+   
+   For &x = 1 To &sleepiestGuard.Minutes.Len
+      If (&sleepiestGuard.Minutes [&x] > &sleepiestGuard.Minutes [&sleepiestMinute]) Then
+         &sleepiestMinute = &x;
+      End-If;
+   End-For;
+   
+   Return String(Value(&sleepiestGuard.ID) * Value(&sleepiestMinute - 1));
+end-method;
+
+/* This exploits knowledge that we don't exceed a frequency value of 200,000 */
+method SolvePart2
+   /+ Returns String +/
+   /+ Extends/implements TS_AOC2018:Day.SolvePart2 +/
+   
+   Local integer &x, &y, &z;
+   
+   Local integer &sleepiestMinute;
+   Local integer &sleepiestMinuteAmt;
+   Local TS_AOC2018:Support:Guard &sleepiestGuard;
+   
+   For &x = 1 To &guards.Len
+      For &y = 1 To &guards [&x].Minutes.Len
+         If (&guards [&x].Minutes [&y] > &sleepiestMinuteAmt) Then
+            
+            &sleepiestMinuteAmt = &guards [&x].Minutes [&y];
+            &sleepiestMinute = &y;
+            &sleepiestGuard = &guards [&x];
+         End-If;
+      End-For;
+   End-For;
+   Return String(Value(&sleepiestGuard.ID) * (&sleepiestMinute - 1));
+end-method;
+
+method GetGuardByID
+   /+ &id as String +/
+   /+ Returns TS_AOC2018:Support:Guard +/
+   Local integer &x, &y, &z;
+   Local TS_AOC2018:Support:Guard &foundGuard = Null;
+   
+   For &x = 1 To &guards.Len
+      If (&guards [&x].ID = &id) Then
+         &foundGuard = &guards [&x];
+         Break;
+      End-If;
+   End-For;
+   
+   If (&foundGuard = Null) Then
+      &foundGuard = create TS_AOC2018:Support:Guard();
+      &foundGuard.ID = &id;
+      &guards.Push(&foundGuard);
+   End-If;
+   
+   Return &foundGuard;
+end-method;
+
+
+get Description
+   /+ Returns String +/
+   Return "Repose Record";
+end-get;
+
