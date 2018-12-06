@@ -1,0 +1,187 @@
+import TS_AOC2018:Support:Location;
+import TS_AOC2018:Day;
+
+class Day6 extends TS_AOC2018:Day
+   method Day6();
+   
+   property string Description get;
+   method SolvePart1() Returns string;
+   method SolvePart2() Returns string;
+   
+private
+   method ParseInput();
+   method GetManhattanDistance(&x As integer, &y As integer, &loc As TS_AOC2018:Support:Location) Returns integer;
+   instance array of TS_AOC2018:Support:Location &locations;
+   instance array of array of number &grid;
+   
+end-class;
+
+method Day6
+   %Super = create TS_AOC2018:Day("TS_AOC_DAY6_INPUT");
+   
+   %This.ParseInput();
+   
+end-method;
+
+method ParseInput
+   Local integer &x, &y;
+   Local integer &maxX, &maxY;
+   &locations = CreateArrayRept(create TS_AOC2018:Support:Location(), 0);
+   For &x = 1 To %This.Lines.Len
+      Local TS_AOC2018:Support:Location &loc = create TS_AOC2018:Support:Location();
+      Local array of string &parts = Split(%This.Lines [&x], ",");
+      &loc.X = Value(LTrim(RTrim(&parts [1])));
+      &loc.Y = Value(LTrim(RTrim(&parts [2])));
+      &loc.ID = &x;
+      If &loc.X > &maxX Then
+         &maxX = &loc.X;
+      End-If;
+      
+      If &loc.Y > &maxY Then
+         &maxY = &loc.Y;
+      End-If;
+      &locations.Push(&loc);
+   End-For;
+   /* make the grid just big enough */
+   &grid = CreateArrayRept(CreateArrayRept(0, 0), 0);
+   For &x = 1 To &maxX
+      &grid.Push(CreateArrayRept(0, &maxY));
+   End-For;
+end-method;
+
+method SolvePart1
+   /+ Returns String +/
+   /+ Extends/implements TS_AOC2018:Day.SolvePart1 +/
+   Local integer &x, &y, &z;
+   Local integer &minDistance, &minWinner;
+   Local boolean &hasMultipleMin;
+   
+   For &x = 0 To &grid.Len - 1
+      For &y = 0 To &grid [1].Len - 1
+         &minDistance = 1000; /* something stupid high */
+         &minWinner = 0;
+         &hasMultipleMin = False;
+         For &z = 1 To &locations.Len
+            Local integer &dist = %This.GetManhattanDistance(&x, &y, &locations [&z]);
+            
+            If (&dist < &minDistance) Then
+               &minDistance = &dist;
+               &minWinner = &locations [&z].ID;
+               &hasMultipleMin = False;
+            Else
+               If (&dist = &minDistance) Then
+                  &hasMultipleMin = True;
+               End-If;
+            End-If;
+         End-For;
+         If (&hasMultipleMin) Then
+            &grid [&x + 1][&y + 1] = 0;
+         Else
+            &grid [&x + 1][&y + 1] = &minWinner;
+         End-If;
+      End-For;
+   End-For;
+   
+   /* walk the edges looking for locations we can remove as infinite */
+   Local array of number &infiniteLocations = CreateArrayRept(0, 0);
+   
+   For &x = 1 To &grid.Len
+      /* top row */
+      If (&grid [&x][1] > 0 And
+            &infiniteLocations.Find(&grid [&x][1]) = 0) Then
+         &infiniteLocations.Push(&grid [&x][1]);
+         Continue;
+      End-If;
+      
+      /* bottom row */
+      If (&grid [&x][&grid [1].Len] > 0 And
+            &infiniteLocations.Find(&grid [&x][&grid [1].Len]) = 0) Then
+         &infiniteLocations.Push(&grid [&x][&grid [1].Len]);
+         Continue;
+      End-If;
+      
+   End-For;
+   
+   For &y = 1 To &grid [1].Len
+      /* left column */
+      If (&grid [1][&y] > 0 And
+            &infiniteLocations.Find(&grid [1][&y]) = 0) Then
+         &infiniteLocations.Push(&grid [1][&y]);
+         Continue;
+      End-If;
+      
+      /* right column */
+      If (&grid [&grid.Len][&y] > 0 And
+            &infiniteLocations.Find(&grid [&grid.Len][&y]) = 0) Then
+         &infiniteLocations.Push(&grid [&grid.Len][&y]);
+      End-If;
+   End-For;
+   
+   Local array of number &candidates = CreateArrayRept(0, 0);
+   
+   For &x = 1 To &locations.Len
+      If (&infiniteLocations.Find(&locations [&x].ID) = 0) Then
+         &candidates.Push(&locations [&x].ID);
+      End-If;
+   End-For;
+   
+   /* final count of areas */
+   Local array of number &areaCount = CreateArrayRept(0, &locations.Len);
+   
+   For &x = 1 To &grid.Len
+      For &y = 1 To &grid [1].Len
+         
+         Local integer &value = &grid [&x][&y];
+         If (&value <> 0) Then
+            &areaCount [&value] = &areaCount [&value] + 1;
+         End-If;
+      End-For;
+   End-For;
+   Local integer &maxArea;
+   For &x = 1 To &candidates.Len
+      If (&areaCount [&candidates [&x]] > &maxArea) Then
+         &maxArea = &areaCount [&candidates [&x]];
+      End-If;
+   End-For;
+   
+   Return String(&maxArea);
+end-method;
+
+/* This exploits knowledge that we don't exceed a frequency value of 200,000 */
+method SolvePart2
+   /+ Returns String +/
+   /+ Extends/implements TS_AOC2018:Day.SolvePart2 +/
+   Local integer &x, &y, &z;
+   
+   Local integer &thresholdCount;
+   Local integer &coordSum = 0;
+   For &x = 0 To &grid.Len - 1
+      For &y = 0 To &grid [1].Len - 1
+         &coordSum = 0;
+         For &z = 1 To &locations.Len
+            &coordSum = &coordSum + %This.GetManhattanDistance(&x, &y, &locations [&z]);
+         End-For;
+         If (&coordSum < 10000) Then
+            &thresholdCount = &thresholdCount + 1;
+         End-If;
+      End-For;
+   End-For;
+   
+   Return String(&thresholdCount);
+end-method;
+
+method GetManhattanDistance
+   /+ &x as Integer, +/
+   /+ &y as Integer, +/
+   /+ &loc as TS_AOC2018:Support:Location +/
+   /+ Returns Integer +/
+   
+   Return Abs(&x - &loc.X) + Abs(&y - &loc.Y);
+   
+end-method;
+
+get Description
+   /+ Returns String +/
+   Return "Chronal Coordinates";
+end-get;
+
