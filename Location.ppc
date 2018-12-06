@@ -1,0 +1,6 @@
+class Location
+   property integer X;
+   property integer Y;
+   property integer ID;
+end-class;
+
