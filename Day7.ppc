@@ -1,0 +1,237 @@
+import TS_AOC2018:Support:AssemblyStep;
+import TS_AOC2018:Day;
+
+class Day7 extends TS_AOC2018:Day
+   method Day7();
+   
+   property string Description get;
+   method SolvePart1() Returns string;
+   method SolvePart2() Returns string;
+   
+private
+   method ParseInput();
+   
+   instance array of TS_AOC2018:Support:AssemblyStep &stepList;
+   instance integer &totalCount;
+   
+end-class;
+
+method Day7
+   %Super = create TS_AOC2018:Day("TS_AOC_DAY7_INPUT");
+   
+   &stepList = CreateArrayRept(create TS_AOC2018:Support:AssemblyStep(), 0);
+   Local integer &x;
+   For &x = 1 To 26
+      &stepList.Push( Null);
+   End-For;
+   
+   %This.ParseInput();
+   
+end-method;
+
+method ParseInput
+   
+   Local integer &x;
+   
+   For &x = 1 To %This.Lines.Len
+      
+      Local array of string &parts = Split(%This.Lines [&x], " ");
+      Local string &prereq = &parts [2];
+      Local string &step = &parts [8];
+      
+      Local integer &stepIndex = Code(&step) - 64;
+      Local integer &reqIndex = Code(&prereq) - 64;
+      
+      Local TS_AOC2018:Support:AssemblyStep &newStep;
+      /* check if step exists */
+      If &stepList [&stepIndex] = Null Then
+         
+         &newStep = create TS_AOC2018:Support:AssemblyStep();
+         &newStep.ID = &step;
+         &newStep.TimeLeft = 60 + (Code(&step) - 64);
+         &stepList [&stepIndex] = &newStep;
+         
+         &totalCount = &totalCount + 1;
+      End-If;
+      
+      /* check if prereq exists */
+      If (&stepList [&reqIndex] = Null) Then
+         &newStep = create TS_AOC2018:Support:AssemblyStep();
+         &newStep.ID = &prereq;
+         &newStep.TimeLeft = 60 + (Code(&prereq) - 64);
+         &stepList [&reqIndex] = &newStep;
+         &totalCount = &totalCount + 1;
+      End-If;
+      
+      /* setup the associations */
+      &stepList [&reqIndex].Children.Push(&stepList [&stepIndex]);
+      &stepList [&stepIndex].Prereqs.Push(&stepList [&reqIndex]);
+      
+   End-For;
+   
+end-method;
+
+method SolvePart1
+   /+ Returns String +/
+   /+ Extends/implements TS_AOC2018:Day.SolvePart1 +/
+   Local integer &x, &y, &z;
+   Local array of string &availableSteps = CreateArrayRept("", 0);
+   Local array of string &order = CreateArrayRept("", 0);
+   /* find the step(s) with 0 prereqs */
+   For &x = 1 To &stepList.Len
+      
+      If (&stepList [&x] = Null) Then
+         /* step letter not used in input, skip */
+         Continue;
+      End-If;
+      
+      If (&stepList [&x].Prereqs.Len = 0) Then
+         rem %Response.Write("Found a starting step of: " | &stepList [&x].ID | "<br />");
+         &availableSteps.Push(&stepList [&x].ID);
+      End-If;
+   End-For;
+   
+   /* sort the available */
+   /* use descending so we can use "pop" instead of "shift" */
+   &availableSteps.Sort("D");
+   
+   While &availableSteps.Len > 0
+      /* pop the last element (first alphabetically) */
+      Local string &nextStepID = &availableSteps.Pop();
+      &order.Push(&nextStepID);
+      
+      /* find this element */
+      Local TS_AOC2018:Support:AssemblyStep &nextStep = &stepList [Code(&nextStepID) - 64];
+      
+      /* determine children that can be added */
+      For &x = 1 To &nextStep.Children.Len
+         
+         Local TS_AOC2018:Support:AssemblyStep &candidateChild = &nextStep.Children [&x];
+         
+         Local boolean &allPrereqsDone = True;
+         
+         For &y = 1 To &candidateChild.Prereqs.Len
+            If (&order.Find(&candidateChild.Prereqs [&y].ID) = 0) Then
+               &allPrereqsDone = False;
+               Break;
+            End-If;
+         End-For;
+         
+         If (&allPrereqsDone) Then
+            &availableSteps.Push(&candidateChild.ID);
+         End-If;
+      End-For;
+      
+      &availableSteps.Sort("D");
+      
+   End-While;
+   
+   Return &order.Join("", "", "");
+end-method;
+
+/* This exploits knowledge that we don't exceed a frequency value of 200,000 */
+method SolvePart2
+   /+ Returns String +/
+   /+ Extends/implements TS_AOC2018:Day.SolvePart2 +/
+   Local integer &x, &y, &z;
+   Local integer &timeElapsed;
+   Local integer &stepsWorked;
+   Local array of string &workers = CreateArrayRept("", 5);
+   Local TS_AOC2018:Support:AssemblyStep &workerStep;
+   Local array of string &availableSteps = CreateArrayRept("", 0);
+   Local array of string &workedOrder = CreateArrayRept("", 0);
+   
+   /* init with beginning steps */
+   For &x = 1 To &stepList.Len
+      
+      If (&stepList [&x] = Null) Then
+         /* step letter not used in input, skip */
+         Continue;
+      End-If;
+      
+      If (&stepList [&x].Prereqs.Len = 0) Then
+         rem %Response.Write("Found a starting step of: " | &stepList [&x].ID | "<br />");
+         &availableSteps.Push(&stepList [&x].ID);
+      End-If;
+   End-For;
+   
+   /* sort the available */
+   /* use descending so we can use "pop" instead of "shift" */
+   &availableSteps.Sort("D");
+   
+   While &stepsWorked < &totalCount
+      /* if there are any steps availabe, and a free worker */
+      While &availableSteps.Len > 0 And
+            &workers.Find("") > 0
+         Local integer &freeWorkerIndex = &workers.Find("");
+         Local string &freeStep = &availableSteps.Pop();
+         
+         &workers [&freeWorkerIndex] = &freeStep;
+         
+      End-While;
+      
+      /* find the minimum time step we can subtract */
+      Local integer &minTime = 100;
+      For &x = 1 To &workers.Len
+         
+         If (&workers [&x] = "") Then
+            /* this worker isn't working.. move along */
+            Continue;
+         End-If;
+         
+         /* step the worker is currently on */
+         &workerStep = &stepList [Code(&workers [&x]) - 64];
+         
+         If (&workerStep.TimeLeft < &minTime) Then
+            &minTime = &workerStep.TimeLeft;
+         End-If;
+         
+      End-For;
+      &timeElapsed = &timeElapsed + &minTime;
+      /* subtract unit time from all active worker steps */
+      For &x = 1 To &workers.Len
+         
+         If (&workers [&x] = "") Then
+            /* this worker isn't working.. move along */
+            Continue;
+         End-If;
+         
+         /* step the worker is currently on */
+         &workerStep = &stepList [Code(&workers [&x]) - 64];
+         &workerStep.TimeLeft = &workerStep.TimeLeft - &minTime;
+         
+         If (&workerStep.TimeLeft <= 0) Then
+            /* worker just finished this, process any children now and free  up the worker */
+            &stepsWorked = &stepsWorked + 1;
+            &workedOrder.Push(&workers [&x]);
+            &workers [&x] = "";
+            
+            For &y = 1 To &workerStep.Children.Len
+               Local TS_AOC2018:Support:AssemblyStep &child = &workerStep.Children [&y];
+               Local boolean &childReady = True;
+               For &z = 1 To &child.Prereqs.Len
+                  If (&child.Prereqs [&z].TimeLeft > 0) Then
+                     &childReady = False;
+                     Break;
+                  End-If;
+                  
+               End-For;
+               If (&childReady) Then
+                  &availableSteps.Push(&child.ID);
+               End-If;
+            End-For;
+         End-If;       
+      End-For;
+      
+      &availableSteps.Sort("D");
+      
+   End-While;
+
+   Return String(&timeElapsed);
+end-method;
+
+get Description
+   /+ Returns String +/
+   Return "The Sum of Its Parts";
+end-get;
+
