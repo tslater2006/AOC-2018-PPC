@@ -89,7 +89,6 @@ method SolvePart1
    Return String(Value(&sleepiestGuard.ID) * Value(&sleepiestMinute - 1));
 end-method;
 
-/* This exploits knowledge that we don't exceed a frequency value of 200,000 */
 method SolvePart2
    /+ Returns String +/
    /+ Extends/implements TS_AOC2018:Day.SolvePart2 +/
