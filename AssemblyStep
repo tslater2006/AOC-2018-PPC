@@ -1,0 +1,14 @@
+class AssemblyStep
+   /* Marked as any since if i gave proper type, constructor would recurse */
+   property string ID;
+   property array of any Prereqs;
+   property array of any Children;
+   property integer TimeLeft;
+   method AssemblyStep()
+end-class;
+
+method AssemblyStep
+   %This.Prereqs = CreateArrayAny();
+   %This.Children = CreateArrayAny();
+end-method;
+
