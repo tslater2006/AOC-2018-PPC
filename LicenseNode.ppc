@@ -1,0 +1,12 @@
+class LicenseNode
+   property array of any Children;
+   property array of number Metadata;
+   
+   method LicenseNode();
+end-class;
+
+method LicenseNode
+   %This.Children = CreateArrayAny();
+   %This.Metadata = CreateArrayRept(0, 0);
+end-method;
+
