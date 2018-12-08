@@ -1,0 +1,114 @@
+import TS_AOC2018:Support:LicenseNode;
+import TS_AOC2018:Day;
+
+class Day8 extends TS_AOC2018:Day
+   method Day8();
+   
+   property string Description get;
+   method SolvePart1() Returns string;
+   method SolvePart2() Returns string;
+   
+   
+private
+   method ParseInput();
+   method ParseNextNode() Returns TS_AOC2018:Support:LicenseNode;
+   method GetNodeSum(&node As TS_AOC2018:Support:LicenseNode) Returns number;
+   instance TS_AOC2018:Support:LicenseNode &rootNode;
+   instance array of number &values;
+   instance integer &metadataSum;
+end-class;
+
+method Day8
+   %Super = create TS_AOC2018:Day("TS_AOC_DAY8_INPUT");
+   %This.ParseInput();
+end-method;
+
+method ParseInput
+   Local integer &x;
+   
+   &values = CreateArrayRept(0, 0);
+   
+   Local array of string &numbers = Split(%This.Lines [1], " ");
+   For &x = 1 To &numbers.Len
+      &values.Push(Value(&numbers [&x]));
+   End-For;
+   
+   /* reverse it so we can use pop() */
+   &values.Reverse();
+   
+   &rootNode = %This.ParseNextNode();
+   
+end-method;
+
+method SolvePart1
+   /+ Returns String +/
+   /+ Extends/implements TS_AOC2018:Day.SolvePart1 +/
+   
+   /* part 1 is solved during initial parsing */
+   
+   Return String(&metadataSum);
+end-method;
+
+/* This exploits knowledge that we don't exceed a frequency value of 200,000 */
+method SolvePart2
+   /+ Returns String +/
+   /+ Extends/implements TS_AOC2018:Day.SolvePart2 +/
+   Local integer &x, &y, &z;
+   Return String(%This.GetNodeSum(&rootNode));
+end-method;
+
+method GetNodeSum
+   /+ &node as TS_AOC2018:Support:LicenseNode +/
+   /+ Returns Number +/
+   
+   Local integer &x, &y, &z;
+   
+   Local integer &sum;
+   If &node.Children.Len = 0 Then
+      For &x = 1 To &node.Metadata.Len
+         &sum = &sum + &node.Metadata [&x];
+      End-For;
+   Else
+      
+      /* we have child nodes, use metadata as index */
+      For &x = 1 To &node.Metadata.Len
+         Local integer &index = &node.Metadata [&x];
+         
+         If (&index > 0 And
+               &index <= &node.Children.Len) Then
+            &sum = &sum + %This.GetNodeSum(&node.Children [&index]);
+         End-If;
+         
+      End-For;
+      
+   End-If;
+   Return &sum;
+end-method;
+
+method ParseNextNode
+   /+ Returns TS_AOC2018:Support:LicenseNode +/
+   
+   Local TS_AOC2018:Support:LicenseNode &ret = create TS_AOC2018:Support:LicenseNode();
+   
+   Local integer &x;
+   Local integer &childNodeCount = &values.Pop();
+   Local integer &metadataCount = &values.Pop();
+   
+   For &x = 1 To &childNodeCount
+      &ret.Children.Push(%This.ParseNextNode());
+   End-For;
+   
+   For &x = 1 To &metadataCount
+      Local number &meta = &values.Pop();
+      &ret.Metadata.Push(&meta);
+      &metadataSum = &metadataSum + &meta;
+   End-For;
+   
+   Return &ret;
+end-method;
+
+get Description
+   /+ Returns String +/
+   Return "Memory Maneuver";
+end-get;
+
