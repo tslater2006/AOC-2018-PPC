@@ -1,0 +1,147 @@
+import TS_AOC2018:Support:Marble;
+import TS_AOC2018:Day;
+
+class Day9 extends TS_AOC2018:Day
+   method Day9();
+   
+   property string Description get;
+   method SolvePart1() Returns string;
+   method SolvePart2() Returns string;
+private
+   method ParseInput(&line As number);
+   method PrintMarbleBoard();
+   method PlaceMarble(&player As number, &marble As TS_AOC2018:Support:Marble);
+   method PlayGame() Returns string;
+   instance array of number &players;
+   instance array of TS_AOC2018:Support:Marble &marbles;
+   instance TS_AOC2018:Support:Marble &currentMarble;
+   instance TS_AOC2018:Support:Marble &zeroMarble;
+end-class;
+
+method Day9
+   %Super = create TS_AOC2018:Day("TS_AOC_DAY9_INPUT");
+   
+   &zeroMarble = create TS_AOC2018:Support:Marble();
+   &zeroMarble.Number = 0;
+   
+end-method;
+
+method ParseInput
+   /+ &line as Number +/
+   Local number &x;
+   
+   Local array of string &parts = Split(%This.Lines [&line], ":");
+   
+   &players = CreateArrayRept(0, Value(&parts [1]));
+   &marbles = CreateArrayRept(create TS_AOC2018:Support:Marble(), 0);
+   
+   For &x = 1 To Value(&parts [2])
+      Local TS_AOC2018:Support:Marble &newMarble = create TS_AOC2018:Support:Marble();
+      &newMarble.Number = &x;
+      &marbles.Push(&newMarble);
+   End-For;
+   
+end-method;
+
+method SolvePart1
+   /+ Returns String +/
+   /+ Extends/implements TS_AOC2018:Day.SolvePart1 +/
+   Local number &x;
+   %This.ParseInput(1);
+   /* start the game */
+   Return %This.PlayGame();
+end-method;
+
+method PlayGame
+   /+ Returns String +/
+   
+   &zeroMarble.Next = &zeroMarble;
+   &zeroMarble.Previous = &zeroMarble;
+   &currentMarble = &zeroMarble;
+   
+   Local number &currentPlayer = 1;
+   Local number &x;
+   For &x = 1 To &marbles.Len
+      %This.PlaceMarble(&currentPlayer, &marbles [&x]);
+      
+      &currentPlayer = &currentPlayer + 1;
+      If (&currentPlayer > &players.Len) Then
+         &currentPlayer = 1;
+      End-If;
+      
+   End-For;
+   rem %This.PrintMarbleBoard();
+   Local number &maxScore;
+   For &x = 1 To &players.Len
+      If &players [&x] > &maxScore Then
+         &maxScore = &players [&x];
+      End-If;
+   End-For;
+   Return String(&maxScore);
+end-method;
+
+method PrintMarbleBoard
+   /* find the start marble */
+   %Response.Write("Printing marble board...<br />");
+   
+   Local TS_AOC2018:Support:Marble &current = &zeroMarble;
+   %Response.Write("[");
+   Repeat
+      %Response.Write(&current.Number | ",");
+      &current = &current.Next;
+   Until &current = &zeroMarble;
+   
+   %Response.Write("]<br />");
+   
+end-method;
+
+method PlaceMarble
+   /+ &player as Number, +/
+   /+ &marble as TS_AOC2018:Support:Marble +/
+   Local TS_AOC2018:Support:Marble &next = &currentMarble.Next;
+   Local TS_AOC2018:Support:Marble &nextNext = &currentMarble.Next.Next;
+   
+   If (Mod(&marble.Number, 23) = 0) Then
+      /* special rules here */
+      /* first off we don't add the 23rd marble, but that instead goes to player score */
+      &players [&player] = &players [&player] + &marble.Number;
+      
+      Local TS_AOC2018:Support:Marble &marbleToRemove = &currentMarble;
+      Local number &x;
+      For &x = 1 To 7
+         &marbleToRemove = &marbleToRemove.Previous
+      End-For;
+      
+      /* add this marble to the score */
+      &players [&player] = &players [&player] + &marbleToRemove.Number;
+      /* hook up previous and next together */
+      &marbleToRemove.Previous.Next = &marbleToRemove.Next;
+      &marbleToRemove.Next.Previous = &marbleToRemove.Previous;
+      
+      &currentMarble = &marbleToRemove.Next;
+      
+      &marbleToRemove.Next = Null;
+      &marbleToRemove.Previous = Null;
+   Else
+      &next.Next = &marble;
+      &nextNext.Previous = &marble;
+      &marble.Previous = &next;
+      &marble.Next = &nextNext;
+      &currentMarble = &marble;
+   End-If;
+   Return;
+end-method;
+
+method SolvePart2
+   /+ Returns String +/
+   /+ Extends/implements TS_AOC2018:Day.SolvePart2 +/
+   %This.ParseInput(2);
+   Return %This.PlayGame();
+   
+end-method;
+
+get Description
+   /+ Returns String +/
+   Return "Marble Mania";
+end-get;
+
