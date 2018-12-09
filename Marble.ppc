@@ -1,0 +1,6 @@
+class Marble
+   property integer Number;
+   property TS_AOC2018:Support:Marble Previous;
+   property TS_AOC2018:Support:Marble Next;
+end-class;
+
