@@ -1,0 +1,189 @@
+import TS_AOC2018:Utilities:Utils;
+import TS_AOC2018:Day;
+
+class Day10 extends TS_AOC2018:Day
+   method Day10();
+   
+   property string Description get;
+   method SolvePart1() Returns string;
+   method SolvePart2() Returns string;
+   
+private
+   
+   method ParseInput();
+   
+   instance array of number &PointX;
+   instance array of number &PointY;
+   instance array of number &DeltaX;
+   instance array of number &DeltaY;
+   
+   instance number &BoundY;
+   instance number &minY, &maxY;
+   instance number &timeElapsed;
+end-class;
+
+method Day10
+   %Super = create TS_AOC2018:Day("TS_AOC_DAY10_INPUT");
+   
+   &PointX = CreateArrayRept(0, 0);
+   &PointY = CreateArrayRept(0, 0);
+   &DeltaX = CreateArrayRept(0, 0);
+   &DeltaY = CreateArrayRept(0, 0);
+   
+   %This.ParseInput();
+   /* start with a stupid high minY */
+end-method;
+
+method ParseInput
+   /* position=< 9,  1> velocity=< 0,  2> */
+   /* position=< 7,  0> velocity=<-1,  0> */
+   Local integer &x, &y;
+   For &x = 1 To %This.Lines.Len
+      
+      Local array of string &letters = Split(%This.Lines [&x], "");
+      Local string &cleanedString = "";
+      For &y = 1 To &letters.Len
+         Local integer &code = Code(&letters [&y]);
+         If (&code >= 48 And
+               &code <= 57) Or
+               &code = 32 Or
+               &code = 45 Then
+            &cleanedString = &cleanedString | &letters [&y];
+         End-If;
+      End-For;
+      &cleanedString = LTrim(Substitute(&cleanedString, "  ", " "));
+      
+      Local array of string &parts = Split(&cleanedString, " ");
+      
+      Local integer &newX, &newY;
+      &newX = Value(&parts [1]);
+      &newY = Value(&parts [2]);
+      If (&x = 1) Then
+         &minY = &newY;
+         &maxY = &newY;
+      End-If;
+      If (&newY < &minY) Then
+         &minY = &newY;
+      Else
+         If (&newY > &maxY) Then
+            &maxY = &newY;
+         End-If;
+      End-If;
+      &PointX.Push(&newX);
+      &PointY.Push(&newY);
+      &DeltaX.Push(Value(&parts [3]));
+      &DeltaY.Push(Value(&parts [4]));
+   End-For;
+   
+   &BoundY = &maxY - &minY + 1;
+end-method;
+
+method SolvePart1
+   /+ Returns String +/
+   /+ Extends/implements TS_AOC2018:Day.SolvePart1 +/
+   Local integer &x, &y, &z;
+   Local boolean &boundYShrank;
+   
+   Repeat
+      &timeElapsed = &timeElapsed + 1;
+      For &x = 1 To &PointX.Len
+         
+         &PointX [&x] = &PointX [&x] + &DeltaX [&x];
+         &PointY [&x] = &PointY [&x] + &DeltaY [&x];
+         
+         
+      End-For;
+      
+      Local integer &minYCheck, &maxYCheck;
+      
+      &minYCheck = &PointY [1];
+      &maxYCheck = &PointY [1];
+      
+      For &x = 2 To &PointY.Len
+         If (&PointY [&x] < &minYCheck) Then
+            &minYCheck = &PointY [&x];
+         Else
+            If (&PointY [&x] > &maxYCheck) Then
+               &maxYCheck = &PointY [&x];
+            End-If;
+         End-If;
+      End-For;
+      Local integer &newBoundY = (&maxYCheck - &minYCheck + 1);
+      rem %Response.Write("New bound: " | &minYCheck | "," | &maxYCheck | "[" | &newBoundY | "]<br />");
+      
+      If (&newBoundY < &BoundY) Then
+         &BoundY = &newBoundY;
+         &boundYShrank = True;
+      Else
+         &boundYShrank = False;
+      End-If;
+      
+   Until &boundYShrank = False;
+   &timeElapsed = &timeElapsed - 1;
+   rem %Response.Write("Bound Y started growing again.");
+   
+   /* Undo the last one */
+   For &x = 1 To &PointX.Len
+      &PointX [&x] = &PointX [&x] - &DeltaX [&x];
+      &PointY [&x] = &PointY [&x] - &DeltaY [&x];
+   End-For;
+   
+   Local integer &finalMinX, &finalMinY, &finalMaxX, &finalMaxY;
+   
+   &finalMinX = &PointX [1];
+   &finalMaxX = &PointX [1];
+   &finalMinY = &PointY [1];
+   &finalMaxY = &PointY [1];
+   
+   For &x = 1 To &PointX.Len
+      
+      If (&PointX [&x] < &finalMinX) Then
+         &finalMinX = &PointX [&x];
+      Else
+         If (&PointX [&x] > &finalMaxX) Then
+            &finalMaxX = &PointX [&x];
+         End-If;
+      End-If;
+      
+      If (&PointY [&x] < &finalMinY) Then
+         &finalMinY = &PointY [&x];
+      Else
+         If (&PointY [&x] > &finalMaxY) Then
+            &finalMaxY = &PointY [&x];
+         End-If;
+      End-If;
+      
+   End-For;
+   
+   /* OCR is too much, just print out the grid i guess */
+   /* assume there are no negatives in the final */
+   
+   Local integer &gridWidth = &finalMaxX - &finalMinX + 1;
+   Local integer &gridHeight = &finalMaxY - &finalMinY + 1;
+   
+   Local string &svgText = "<svg width=""" | &gridWidth | """ height=""" | &gridHeight | """>";
+   
+   For &x = 1 To &PointX.Len
+      &svgText = &svgText | "<rect x=""" | (&PointX [&x] - &finalMinX) | """ y=""" | (&PointY [&x] - &finalMinY) | """ width=""1"" height=""1"" fill=""#000000"" />";
+   End-For;
+   
+   &svgText = &svgText | "</svg>";
+   
+   Return &svgText;
+end-method;
+
+/* This exploits knowledge that we don't exceed a frequency value of 200,000 */
+method SolvePart2
+   /+ Returns String +/
+   /+ Extends/implements TS_AOC2018:Day.SolvePart2 +/
+   
+   /* this value is calculated during part 1 */
+   Return String(&timeElapsed);
+end-method;
+
+
+get Description
+   /+ Returns String +/
+   Return "The Stars Align";
+end-get;
+
