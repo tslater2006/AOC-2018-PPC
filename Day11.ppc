@@ -1,0 +1,137 @@
+import TS_AOC2018:Utilities:Utils;
+import TS_AOC2018:Day;
+
+class Day11 extends TS_AOC2018:Day
+   method Day11();
+   
+   property string Description get;
+   method SolvePart1() Returns string;
+   method SolvePart2() Returns string;
+   
+private
+   method FindSumForGridSize(&size As number) Returns number;
+   instance number &serialNumber;
+   instance array of array of number &levelMap;
+   instance array of array of number &prefixSumMap;
+   instance number &winningX, &winningY;
+end-class;
+
+method Day11
+   %Super = create TS_AOC2018:Day("TS_AOC_DAY11_INPUT");
+   &serialNumber = Value(%This.Lines [1]);
+   Local number &x, &y;
+   &levelMap = CreateArrayRept(CreateArrayRept(0, 0), 0);
+   &prefixSumMap = CreateArrayRept(CreateArrayRept(0, 0), 0);
+   For &x = 1 To 300
+      &levelMap.Push(CreateArrayRept(0, 300));
+      &prefixSumMap.Push(CreateArrayRept(0, 300));
+   End-For;
+   
+   /* precompute the power level */
+   For &x = 0 To 299
+      For &y = 0 To 299
+         &levelMap [&x + 1][&y + 1] = Mod(Idiv(((((&x + 10) * (&y)) + &serialNumber) * (&x + 10)), 100), 10) - 5;
+         
+         If &x = 0 Then
+            /* we're in first column */
+            If &y = 0 Then
+               &prefixSumMap [&x + 1][&y + 1] = &levelMap [&x + 1][&y + 1];
+            Else
+               &prefixSumMap [&x + 1][&y + 1] = &prefixSumMap [&x + 1][&y] + &levelMap [&x + 1][&y + 1];
+            End-If;
+         End-If;
+         
+         If &y = 0 And
+               &x <> 0 Then
+            &prefixSumMap [&x + 1][&y + 1] = &prefixSumMap [&x][&y + 1] + &levelMap [&x + 1][&y + 1];
+         End-If;
+         
+         If &y > 0 And
+               &x > 0 Then
+            &prefixSumMap [&x + 1][&y + 1] = &prefixSumMap [&x][&y + 1] + &prefixSumMap [&x + 1][&y] - &prefixSumMap [&x][&y] + &levelMap [&x + 1][&y + 1];
+            
+         End-If;
+         
+      End-For;
+   End-For;
+end-method;
+
+method FindSumForGridSize
+   /+ &size as Number +/
+   /+ Returns Number +/
+   Local number &x, &y;
+   Local number &maxSize, &maxX, &maxY, &fullSum;
+   
+   For &x = 0 To 299 - (&size - 1)
+      For &y = 0 To 299 - (&size - 1)
+         
+         If &x = 0 And
+               &y = 0 Then
+            &fullSum = &prefixSumMap [&x + (&size - 1) + 1][&y + (&size - 1) + 1];
+         Else
+            
+            If &x = 0 And
+                  &y > 0 Then
+               &fullSum = &prefixSumMap [&x + (&size - 1) + 1][&y + (&size - 1) + 1];
+               &fullSum = &fullSum - &prefixSumMap [&x + (&size - 1) + 1][&y + 1];
+            Else
+               
+               If &y = 0 And
+                     &x > 0 Then
+                  &fullSum = &prefixSumMap [&x + (&size - 1) + 1][&y + (&size - 1) + 1];
+                  &fullSum = &fullSum - &prefixSumMap [&x + 1][&y + (&size - 1) + 1];
+               Else
+                  &fullSum = &prefixSumMap [&x + (&size - 1) + 1][&y + (&size - 1) + 1];
+                  &fullSum = &fullSum - &prefixSumMap [&x - 1 + 1][&y + (&size - 1) + 1];
+                  &fullSum = &fullSum - &prefixSumMap [&x + (&size - 1) + 1][&y - 1 + 1];
+                  &fullSum = &fullSum + &prefixSumMap [&x - 1 + 1][&y - 1 + 1];
+               End-If;
+            End-If;
+         End-If;
+         If &fullSum > &maxSize Then
+            &maxSize = &fullSum;
+            &maxX = &x;
+            &maxY = &y;
+         End-If;
+         
+      End-For;
+   End-For;
+   &winningX = &maxX;
+   &winningY = &maxY;
+   Return &maxSize;
+end-method;
+
+method SolvePart1
+   /+ Returns String +/
+   /+ Extends/implements TS_AOC2018:Day.SolvePart1 +/
+   Local number &bestSum = %This.FindSumForGridSize(3);
+   Return &winningX | "," | &winningY;
+end-method;
+
+/* This exploits knowledge that we don't exceed a frequency value of 200,000 */
+method SolvePart2
+   /+ Returns String +/
+   /+ Extends/implements TS_AOC2018:Day.SolvePart2 +/
+   Local number &x, &y;
+   Local number &bestScore;
+   Local number &bestX, &bestY, &bestSize;
+   For &x = 1 To 300
+      
+      Local number &curScore = %This.FindSumForGridSize(&x);
+      If &curScore > &bestScore Then
+         &bestScore = &curScore;
+         &bestX = &winningX;
+         &bestY = &winningY;
+         &bestSize = &x;
+      End-If;
+      
+   End-For;
+   %Response.Write(&bestScore | "");
+   Return &bestX | "," | &bestY | "," | &bestSize;
+end-method;
+
+get Description
+   /+ Returns String +/
+   Return "Chronal Charge";
+end-get;
+
