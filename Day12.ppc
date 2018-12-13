@@ -1,0 +1,174 @@
+import TS_AOC2018:Utilities:Utils;
+import TS_AOC2018:Day;
+
+class Day12 extends TS_AOC2018:Day
+   method Day12();
+   
+   property string Description get;
+   method SolvePart1() Returns string;
+   method SolvePart2() Returns string;
+   
+private
+   method ParseInput();
+   method GetPotSubstring(&index As number) Returns string;
+   instance string &pots;
+   instance array of string &nextPots;
+   
+   instance array of string &rulesThatGrow;
+   instance number &zeroIndex;
+end-class;
+
+method Day12
+   %Super = create TS_AOC2018:Day("TS_AOC_DAY12_INPUT");
+   &nextPots = CreateArrayRept("", 0);
+   &rulesThatGrow = CreateArrayRept("", 0);
+   
+   %This.ParseInput();
+end-method;
+
+method ParseInput
+   
+   &pots = ".." | Substitute(%This.Lines [1], "initial state: ", "") | "..";
+   &zeroIndex = 3;
+   /* parse the rules */
+   Local integer &x;
+   For &x = 3 To %This.Lines.Len
+      Local string &rule = %This.Lines [&x];
+      
+      /* only care if hte rule ends in #" */
+      If Substring(&rule, Len(&rule), 1) = "#" Then
+         &rulesThatGrow.Push(Substring(&rule, 1, 5));
+      End-If;
+      
+   End-For;
+   
+   
+end-method;
+
+method SolvePart1
+   /+ Returns String +/
+   /+ Extends/implements TS_AOC2018:Day.SolvePart1 +/
+   
+   Local integer &x, &y;
+   For &x = 1 To 20
+      &nextPots = CreateArrayRept("", 0);
+      For &y = 1 To Len(&pots);
+         If (&rulesThatGrow.Find(%This.GetPotSubstring(&y)) > 0) Then
+            &nextPots.Push("#");
+         Else
+            &nextPots.Push(".");
+         End-If;
+      End-For;
+      
+      /* finished this generation */
+      &pots = ".." | &nextPots.Join("", "", "") | "..";
+      &zeroIndex = &zeroIndex + 2;
+      rem %Response.Write(&x | " : " | &pots | "<br />");
+   End-For;
+   
+   Local array of string &potList = Split(&pots, "");
+   Local number &potSum;
+   
+   For &x = 1 To &potList.Len
+      
+      If (&x < &zeroIndex And
+            &potList [&x] = "#") Then
+         &potSum = &potSum + ((&zeroIndex - &x) * - 1);
+      End-If;
+      
+      If (&x > &zeroIndex And
+            &potList [&x] = "#") Then
+         &potSum = &potSum + (&x - &zeroIndex);
+      End-If;
+      
+   End-For;
+   
+   
+   Return String(&potSum);
+end-method;
+
+/* This exploits knowledge that we don't exceed a frequency value of 200,000 */
+method SolvePart2
+   /+ Returns String +/
+   /+ Extends/implements TS_AOC2018:Day.SolvePart2 +/
+   Local number &potSum;
+   Local number &lastPotSum;
+   Local integer &x, &y, &z;
+   
+   /* the sum tends to become a constant increase after about generation 160 */
+   /* grab generation 190 for a base number, and 191 to diff against 190 to get the "increase" */
+   For &z = 190 To 191
+      &potSum = 0;
+      %This.ParseInput();
+      For &x = 1 To &z
+         &nextPots = CreateArrayRept("", 0);
+         For &y = 1 To Len(&pots);
+            If (&rulesThatGrow.Find(%This.GetPotSubstring(&y)) > 0) Then
+               &nextPots.Push("#");
+            Else
+               &nextPots.Push(".");
+            End-If;
+         End-For;
+         
+         /* finished this generation */
+         &pots = ".." | &nextPots.Join("", "", "") | "..";
+         &zeroIndex = &zeroIndex + 2;
+         rem %Response.Write(&x | " : " | &pots | "<br />");
+      End-For;
+      
+      Local array of string &potList = Split(&pots, "");
+      
+      
+      For &x = 1 To &potList.Len
+         
+         If (&x < &zeroIndex And
+               &potList [&x] = "#") Then
+            &potSum = &potSum + ((&zeroIndex - &x) * - 1);
+         End-If;
+         
+         If (&x > &zeroIndex And
+               &potList [&x] = "#") Then
+            &potSum = &potSum + (&x - &zeroIndex);
+         End-If;
+         
+      End-For;
+      If (&lastPotSum = 0) Then
+         &lastPotSum = &potSum;
+      Else
+         &potSum = &potSum - &lastPotSum;
+      End-If;
+      
+      rem %Response.Write(&z | " generations: " | &potSum | "<br />");
+   End-For;
+   
+   /* number of generations - number we already caluclated * constant increase + generation 190 sum */
+   
+   Local number &n = ((50000000000 - 190) * &potSum) + &lastPotSum;
+   
+   Return String(&n);
+end-method;
+
+get Description
+   /+ Returns String +/
+   Return "Subterranean Sustainability";
+end-get;
+
+method GetPotSubstring
+   /+ &index as Number +/
+   /+ Returns String +/
+   
+   If (&index < 3) Then
+      Return Rept(".", 5 - (2 + &index)) | Substring(&pots, 1, 2 + &index);
+   End-If;
+   
+   
+   If (&index > Len(&pots) - 2) Then
+      /* len is 29 */
+      /* index is 28 */
+      Return Substring(&pots, &index - 2, 5) | Rept(".", 2 - (Len(&pots) - &index));
+   End-If;
+   
+   Return Substring(&pots, &index - 2, 5);
+   
+end-method;
+
