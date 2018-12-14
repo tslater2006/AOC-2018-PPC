@@ -1,0 +1,7 @@
+class Cart
+   property integer X;
+   property integer Y;
+   property string Direction;
+   property integer TurnCount;
+   property boolean Collided;
+end-class;
