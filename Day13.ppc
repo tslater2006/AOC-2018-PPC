@@ -1,0 +1,451 @@
+import TS_AOC2018:Support:Cart;
+import TS_AOC2018:Day;
+
+class Day13 extends TS_AOC2018:Day
+   method Day13();
+   
+   property string Description get;
+   method SolvePart1() Returns string;
+   method SolvePart2() Returns string;
+   
+private
+   method ParseInput();
+   method SortCarts();
+   method MoveCart(&cart As TS_AOC2018:Support:Cart) Returns boolean;
+   method MergeSort(&array As array of TS_AOC2018:Support:Cart, &sField As string, &bDescending As boolean) Returns array of TS_AOC2018:Support:Cart;
+   instance array of array of string &trackField;
+   instance array of TS_AOC2018:Support:Cart &carts;
+end-class;
+
+method Day13
+   %Super = create TS_AOC2018:Day("TS_AOC_DAY13_INPUT");
+   
+   Local integer &i;
+   
+   %This.ParseInput();
+end-method;
+
+method ParseInput
+   &trackField = CreateArrayRept(CreateArrayRept("", 0), 0);
+   &carts = CreateArrayRept(create TS_AOC2018:Support:Cart(), 0);
+   Local integer &x, &y;
+   Local integer &i;
+   For &y = 1 To %This.Lines.Len
+      
+      Local string &currentLine = %This.Lines [&y];
+      If &y = 1 Then
+         /* put back the padding on the first line, thanks peoplesoft */
+         &currentLine = "                                  " | &currentLine;
+      End-If;
+      
+      Local array of string &line = Split(&currentLine, "");
+      &trackField.Push(&line);
+      
+      
+      /* check this line for any cars */
+      For &x = 1 To &line.Len
+         
+         If (&line [&x] = ">" Or
+               &line [&x] = "^" Or
+               &line [&x] = "v" Or
+               &line [&x] = "<") Then
+            
+            Local TS_AOC2018:Support:Cart &newCart = create TS_AOC2018:Support:Cart();
+            &newCart.X = &x;
+            &newCart.Y = &y;
+            &newCart.Direction = &line [&x];
+            &carts.Push(&newCart);
+            
+            Evaluate &line [&x]
+            When = ">"
+               &line [&x] = "-";
+               Break;
+            When = "<"
+               &line [&x] = "-";
+               Break;
+            When = "^"
+               &line [&x] = "|";
+               Break;
+            When = "v"
+               &line [&x] = "|";
+               Break;
+            End-Evaluate;
+            
+         End-If;
+         
+      End-For;
+      
+   End-For;
+   
+   
+   &carts.Reverse();
+end-method;
+
+method SolvePart1
+   /+ Returns String +/
+   /+ Extends/implements TS_AOC2018:Day.SolvePart1 +/
+   Local boolean &hasCollision = False;
+   %This.ParseInput();
+   Local integer &x, &y, &z;
+   While &hasCollision = False
+      &x = &x + 1;
+      %This.SortCarts();
+      
+      For &y = 1 To &carts.Len
+         
+         &hasCollision = %This.MoveCart(&carts [&y]);
+         
+         If &hasCollision Then
+            /* had  collision */
+            
+            
+            Return ((&carts [&y].X - 1) | "," | (&carts [&y].Y - 1));
+         End-If;
+         
+      End-For;
+      
+      
+   End-While;
+   
+   Return "??";
+end-method;
+
+/* This exploits knowledge that we don't exceed a frequency value of 200,000 */
+method SolvePart2
+   /+ Returns String +/
+   /+ Extends/implements TS_AOC2018:Day.SolvePart2 +/
+   %This.ParseInput();
+   Local number &x, &y, &z;
+   Local number &collisionCount;
+   While &collisionCount < &carts.Len - 1
+      &x = &x + 1;
+      If (&x >= 15000) Then
+         
+         Return "xx";
+      End-If;
+      %This.SortCarts();
+      For &y = 1 To &carts.Len
+         
+         Local boolean &hasCollision = %This.MoveCart(&carts [&y]);
+         
+         If &hasCollision Then
+            /* had  collision */
+            
+            &collisionCount = &collisionCount + 2;
+         End-If;
+      End-For;
+      
+   End-While;
+   
+   For &x = 1 To &carts.Len
+      If &carts [&x].Collided = False Then
+         
+         Return (&carts [&x].X - 1) | "," | (&carts [&x].Y - 1);
+      End-If;
+   End-For;
+   Return "??";
+end-method;
+
+method MoveCart
+   /+ &cart as TS_AOC2018:Support:Cart +/
+   /+ Returns Boolean +/
+   
+   If &cart.Collided Then
+      Return False;
+   End-If;
+   
+   Local string &currentTrack = &trackField [&cart.Y, &cart.X];
+   
+   
+   /* Cart is facing left */
+   If (&cart.Direction = "<") Then
+      If (&currentTrack = "-") Then
+         
+         &cart.X = &cart.X - 1;
+      Else
+         If (&currentTrack = "/") Then
+            
+            &cart.Y = &cart.Y + 1;
+            &cart.Direction = "v";
+         Else
+            If (&currentTrack = "\") Then
+               
+               &cart.Y = &cart.Y - 1;
+               &cart.Direction = "^";
+            End-If;
+         End-If;
+      End-If;
+      If (&currentTrack = "+") Then
+         Evaluate &cart.TurnCount
+         When = 0
+            /* turn left */
+            
+            &cart.Y = &cart.Y + 1;
+            &cart.Direction = "v";
+            &cart.TurnCount = &cart.TurnCount + 1;
+            Break;
+         When = 1
+            /* go straight */
+            
+            &cart.X = &cart.X - 1;
+            &cart.TurnCount = &cart.TurnCount + 1;
+            Break;
+         When = 2
+            /* turn right */
+            
+            &cart.Y = &cart.Y - 1;
+            &cart.Direction = "^";
+            &cart.TurnCount = 0;
+            Break;
+         End-Evaluate;
+      End-If;
+   Else
+      
+      /* Cart is facing right */
+      If (&cart.Direction = ">") Then
+         If (&currentTrack = "-") Then
+            
+            &cart.X = &cart.X + 1;
+         Else
+            If (&currentTrack = "/") Then
+               
+               &cart.Y = &cart.Y - 1;
+               &cart.Direction = "^";
+            Else
+               If (&currentTrack = "\") Then
+                  
+                  &cart.Y = &cart.Y + 1;
+                  
+                  &cart.Direction = "v";
+               End-If;
+            End-If;
+         End-If;
+         If (&currentTrack = "+") Then
+            Evaluate &cart.TurnCount
+            When = 0
+               /* turn left */
+               
+               &cart.Y = &cart.Y - 1;
+               &cart.Direction = "^";
+               &cart.TurnCount = &cart.TurnCount + 1;
+               Break;
+            When = 1
+               /* go straight */
+               &cart.X = &cart.X + 1;
+               &cart.TurnCount = &cart.TurnCount + 1;
+               Break;
+            When = 2
+               /* turn right */
+               &cart.Y = &cart.Y + 1;
+               &cart.Direction = "v";
+               &cart.TurnCount = 0;
+               Break;
+            End-Evaluate;
+         End-If;
+      Else
+         
+         /* Cart is facing Up */
+         If (&cart.Direction = "^") Then
+            If (&currentTrack = "|") Then
+               &cart.Y = &cart.Y - 1;
+            Else
+               If (&currentTrack = "/") Then
+                  &cart.X = &cart.X + 1;
+                  &cart.Direction = ">";
+               Else
+                  If (&currentTrack = "\") Then
+                     &cart.X = &cart.X - 1;
+                     &cart.Direction = "<";
+                  End-If;
+               End-If;
+            End-If;
+            If (&currentTrack = "+") Then
+               Evaluate &cart.TurnCount
+               When = 0
+                  /* turn left */
+                  &cart.X = &cart.X - 1;
+                  &cart.Direction = "<";
+                  &cart.TurnCount = &cart.TurnCount + 1;
+                  Break;
+               When = 1
+                  /* go straight */
+                  &cart.Y = &cart.Y - 1;
+                  &cart.TurnCount = &cart.TurnCount + 1;
+                  Break;
+               When = 2
+                  /* turn right */
+                  &cart.X = &cart.X + 1;
+                  &cart.Direction = ">";
+                  &cart.TurnCount = 0;
+                  Break;
+               End-Evaluate;
+            End-If;
+         Else
+            
+            /* Cart is facing Down */
+            If (&cart.Direction = "v") Then
+               If (&currentTrack = "|") Then
+                  &cart.Y = &cart.Y + 1;
+               Else
+                  If (&currentTrack = "/") Then
+                     &cart.X = &cart.X - 1;
+                     &cart.Direction = "<";
+                  Else
+                     If (&currentTrack = "\") Then
+                        &cart.X = &cart.X + 1;
+                        &cart.Direction = ">";
+                     End-If;
+                  End-If;
+               End-If;
+               If (&currentTrack = "+") Then
+                  Evaluate &cart.TurnCount
+                  When = 0
+                     /* turn left */
+                     &cart.X = &cart.X + 1;
+                     &cart.Direction = ">";
+                     &cart.TurnCount = &cart.TurnCount + 1;
+                     Break;
+                  When = 1
+                     /* go straight */
+                     &cart.Y = &cart.Y + 1;
+                     &cart.TurnCount = &cart.TurnCount + 1;
+                     Break;
+                  When = 2
+                     /* turn right */
+                     &cart.X = &cart.X - 1;
+                     &cart.Direction = "<";
+                     &cart.TurnCount = 0;
+                     Break;
+                  End-Evaluate;
+               End-If;
+            End-If;
+         End-If;
+      End-If;
+   End-If;
+   /* check for a collision */
+   Local integer &x;
+   For &x = 1 To &carts.Len
+      
+      If &carts [&x].Collided = False And
+            &carts [&x] <> &cart And
+            &carts [&x].X = &cart.X And
+            &carts [&x].Y = &cart.Y Then
+         &carts [&x].Collided = True;
+         &cart.Collided = True;
+         Return True
+      End-If;
+      
+   End-For;
+   
+   Return False;
+   
+end-method;
+
+method SortCarts
+   &carts = %This.MergeSort(&carts, "Y", False);
+   Local array of TS_AOC2018:Support:Cart &sorted = CreateArrayRept(&carts [1], 0);
+   Local array of TS_AOC2018:Support:Cart &cartsToSort = CreateArrayRept(&carts [1], 0);
+   Local integer &currentY = &carts [1].Y;
+   &cartsToSort.Push(&carts [1]);
+   Local integer &x, &y;
+   For &x = 2 To &carts.Len
+      
+      If (&carts [&x].Y <> &currentY) Then
+         /* sort the &cartsToSort and shove in &sorted */
+         &cartsToSort = %This.MergeSort(&cartsToSort, "X", False);
+         While &cartsToSort.Len > 0
+            &sorted.Push(&cartsToSort.Shift());
+         End-While;
+         &cartsToSort.Push(&carts [&x]);
+         &currentY = &carts [&x].Y;
+      Else
+         &cartsToSort.Push(&carts [&x]);
+      End-If;
+   End-For;
+   &cartsToSort = %This.MergeSort(&cartsToSort, "X", False);
+   While &cartsToSort.Len > 0
+      &sorted.Push(&cartsToSort.Shift());
+   End-While;
+   &carts = &sorted;
+end-method;
+
+method MergeSort
+   /+ &array as Array of TS_AOC2018:Support:Cart, +/
+   /+ &sField as String, +/
+   /+ &bDescending as Boolean +/
+   /+ Returns Array of TS_AOC2018:Support:Cart +/
+   
+   /* If MergeSort was called on an empty array, return immediately as 
+       Sorting makes no sense in this context. This check is seperate from
+       the one below because it has a different meaning */
+   If (&array.Len = 0) Then
+      Return &array;
+   End-If;
+   
+   /* Stop the recursion! */
+   If (&array.Len = 1) Then
+      Return &array;
+   End-If;
+   
+   Local integer &halfPoint = &array.Len / 2;
+   Local TS_AOC2018:Support:Cart &arrayType;
+   Local array of TS_AOC2018:Support:Cart &array1 = &array.Subarray(1, &halfPoint);
+   Local array of TS_AOC2018:Support:Cart &array2 = &array.Subarray(&halfPoint + 1, &array.Len - &halfPoint);
+   
+   Local array of TS_AOC2018:Support:Cart &sorted = CreateArrayRept(&arrayType, 0);
+   &array1 = %This.MergeSort(&array1, &sField, &bDescending);
+   &array2 = %This.MergeSort(&array2, &sField, &bDescending);
+   Local integer &_index;
+   Local object &obj1, &obj2;
+   Local any &val1, &val2;
+   For &_index = 1 To (&array1.Len + &array2.Len)
+      
+      If (&array1.Len = 0) Then
+         /* all out of left items, add from the right */
+         &sorted.Push(&array2.Shift());
+      Else
+         If (&array2.Len = 0) Then
+            /* all out of right items, add from the left */
+            &sorted.Push(&array1.Shift());
+            
+         Else
+            /* still have items in both, we need to compare them */
+            &obj1 = &array1 [1];
+            &obj2 = &array2 [1];
+            &val1 = ObjectGetProperty(&obj1, &sField);
+            &val2 = ObjectGetProperty(&obj2, &sField);
+            
+            If (&bDescending) Then
+               If (&val1 > &val2) Then
+                  &sorted.Push(&array1.Shift());
+               Else
+                  If (&val1 < &val2) Then
+                     &sorted.Push(&array2.Shift());
+                  Else
+                     &sorted.Push(&array1.Shift());
+                  End-If;
+                  
+               End-If;
+            Else
+               If (&val1 < &val2) Then
+                  &sorted.Push(&array1.Shift());
+               Else
+                  If (&val1 > &val2) Then
+                     &sorted.Push(&array2.Shift());
+                  Else
+                     &sorted.Push(&array1.Shift());
+                  End-If;
+               End-If;
+            End-If;
+         End-If;
+      End-If;
+   End-For;
+   
+   Return &sorted;
+end-method;
+
+get Description
+   /+ Returns String +/
+   Return "Subterranean Sustainability";
+end-get;
+
