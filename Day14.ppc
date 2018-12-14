@@ -1,0 +1,166 @@
+import TS_AOC2018:Utilities:Utils;
+import TS_AOC2018:Day;
+
+class Day14 extends TS_AOC2018:Day
+   method Day14();
+   
+   property string Description get;
+   method SolvePart1() Returns string;
+   method SolvePart2() Returns string;
+end-class;
+
+method Day14
+   %Super = create TS_AOC2018:Day("TS_AOC_DAY14_INPUT");
+end-method;
+
+method SolvePart1
+   /+ Returns String +/
+   /+ Extends/implements TS_AOC2018:Day.SolvePart1 +/
+   Local array of number &recipeScores = CreateArrayRept(0, 0);
+   Local number &elf1, &elf2;
+   Local integer &recipeCount = Value(%This.Lines [1]);
+   
+   /* prep the scores */
+   &recipeScores.Push(3);
+   &recipeScores.Push(7);
+   &elf1 = 1;
+   &elf2 = 2;
+   
+   While &recipeScores.Len < &recipeCount + 10
+      
+      Local number &recipeSum = &recipeScores [&elf1] + &recipeScores [&elf2];
+      
+      If (&recipeSum >= 10) Then
+         &recipeScores.Push(Idiv(&recipeSum, 10));
+         &recipeScores.Push(Mod(&recipeSum, 10));
+      Else
+         &recipeScores.Push(&recipeSum);
+      End-If;
+      
+      /* increment elf index */
+      Local integer &x;
+      For &x = 1 To &recipeScores [&elf1] + 1
+         &elf1 = &elf1 + 1;
+         If (&elf1 > &recipeScores.Len) Then
+            &elf1 = 1;
+         End-If;
+      End-For;
+      
+      For &x = 1 To &recipeScores [&elf2] + 1
+         &elf2 = &elf2 + 1;
+         If (&elf2 > &recipeScores.Len) Then
+            &elf2 = 1;
+         End-If;
+      End-For;
+   End-While;
+   
+   Local number &pow = 1;
+   Local number &sum;
+   For &x = &recipeScores.Len To &recipeScores.Len - 9 Step - 1
+      &sum = &sum + (&recipeScores [&x] * (&pow));
+      &pow = &pow * 10;
+   End-For;
+   Return String(&sum);
+end-method;
+
+method SolvePart2
+   /+ Returns String +/
+   /+ Extends/implements TS_AOC2018:Day.SolvePart2 +/
+   
+   Local array of number &recipeScores = CreateArrayRept(0, 0);
+   Local number &elf1, &elf2;
+   Local array of number &pattern = CreateArrayRept(0, 0);
+   Local number &input = Value(%This.Lines [1]);
+   Local number &patternIndex;
+   
+   While &input > 0
+      &pattern.Push(Mod(&input, 10));
+      &input = Idiv(&input, 10);
+   End-While;
+   &pattern.Reverse();
+   
+   /* prep the scores */
+   &recipeScores.Push(3);
+   &recipeScores.Push(7);
+   &elf1 = 1;
+   &elf2 = 2;
+   
+   While &patternIndex < &pattern.Len
+      
+      Local number &recipeSum = &recipeScores [&elf1] + &recipeScores [&elf2];
+      Local number &recipe1, &recipe2;
+      If (&recipeSum >= 10) Then
+         
+         &recipe1 = Idiv(&recipeSum, 10);
+         &recipeScores.Push(&recipe1);
+         If (&recipe1 = &pattern [&patternIndex + 1]) Then
+            &patternIndex = &patternIndex + 1;
+            If &patternIndex = &pattern.Len Then
+               Break;
+            End-If;
+         Else
+            If (&recipe1 = &pattern [1]) Then
+               &patternIndex = 1;
+            Else
+               &patternIndex = 0;
+            End-If;
+         End-If;
+         
+         &recipe2 = Mod(&recipeSum, 10);
+         &recipeScores.Push(&recipe2);
+         If (&recipe2 = &pattern [&patternIndex + 1]) Then
+            &patternIndex = &patternIndex + 1;
+            If &patternIndex = &pattern.Len Then
+               Break;
+            End-If;
+         Else
+            If (&recipe2 = &pattern [1]) Then
+               &patternIndex = 1;
+            Else
+               &patternIndex = 0;
+            End-If;
+         End-If;
+      Else
+         &recipeScores.Push(&recipeSum);
+         If (&recipeSum = &pattern [&patternIndex + 1]) Then
+            &patternIndex = &patternIndex + 1;
+            If &patternIndex = &pattern.Len Then
+               Break;
+            End-If;
+         Else
+            If (&recipeSum = &pattern [1]) Then
+               &patternIndex = 1;
+            Else
+               &patternIndex = 0;
+            End-If;
+         End-If;
+         
+      End-If;
+      
+      /* increment elf index */
+      Local integer &x;
+      For &x = 1 To &recipeScores [&elf1] + 1
+         &elf1 = &elf1 + 1;
+         If (&elf1 > &recipeScores.Len) Then
+            &elf1 = 1;
+         End-If;
+      End-For;
+      
+      For &x = 1 To &recipeScores [&elf2] + 1
+         &elf2 = &elf2 + 1;
+         If (&elf2 > &recipeScores.Len) Then
+            &elf2 = 1;
+         End-If;
+      End-For;
+      
+   End-While;
+   
+   Return String(&recipeScores.Len - &pattern.Len);
+end-method;
+
+
+get Description
+   /+ Returns String +/
+   Return "Chocolate Charts";
+end-get;
+
