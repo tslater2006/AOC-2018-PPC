@@ -1,0 +1,581 @@
+import TS_AOC2018:Support:Cell;
+import TS_AOC2018:Day;
+
+class Day15 extends TS_AOC2018:Day
+   method Day15();
+   
+   property string Description get;
+   method SolvePart1() Returns string;
+   method SolvePart2() Returns string;
+   
+private
+   method ParseInput(&elfPower As number);
+   method PrintMap();
+   method SortPlayers();
+   method SortTargets(&targetList As array of TS_AOC2018:Support:Cell) Returns array of TS_AOC2018:Support:Cell;
+   method MovePlayer(&player As TS_AOC2018:Support:Cell);
+   method AttackPlayer(&player As TS_AOC2018:Support:Cell) Returns boolean;
+   method MergeSort(&array As array of TS_AOC2018:Support:Cell, &sField As string, &bDescending As boolean) Returns array of TS_AOC2018:Support:Cell;
+   instance array of array of TS_AOC2018:Support:Cell &map;
+   instance array of TS_AOC2018:Support:Cell &players;
+   instance array of string &killedType;
+   instance boolean &beginDebug;
+end-class;
+
+method Day15
+   %Super = create TS_AOC2018:Day("TS_AOC_DAY15_INPUT");
+   %Response.Write("<style>body{font-family:""Courier New"", Courier, monospace;}</style>");
+   &beginDebug = False;
+end-method;
+
+method ParseInput
+   /+ &elfPower as Number +/
+   &map = CreateArrayRept(CreateArrayRept(create TS_AOC2018:Support:Cell(), 0), 0);
+   &players = CreateArrayRept(create TS_AOC2018:Support:Cell(), 0);
+   Local integer &x, &y;
+   Local integer &i;
+   For &y = 1 To %This.Lines.Len
+      
+      Local string &currentLine = %This.Lines [&y];
+      
+      Local array of string &line = Split(&currentLine, "");
+      
+      Local array of TS_AOC2018:Support:Cell &lineCells = CreateArrayRept(create TS_AOC2018:Support:Cell(), 0);
+      &map.Push(&lineCells);
+      /* check this line for any cars */
+      For &x = 1 To &line.Len
+         
+         Local TS_AOC2018:Support:Cell &newCell = create TS_AOC2018:Support:Cell();
+         &newCell.X = &x;
+         &newCell.Y = &y;
+         &newCell.Type = &line [&x];
+         &lineCells.Push(&newCell);
+         If (&newCell.Type = "E" Or
+               &newCell.Type = "G") Then
+            /* also push to players */
+            &newCell.HP = 200;
+            If (&newCell.Type = "E") Then
+               &newCell.Power = &elfPower;
+            Else
+               &newCell.Power = 3;
+            End-If;
+            
+            &players.Push(&newCell);
+         End-If;
+         
+      End-For;
+      
+   End-For;
+   rem %This.PrintMap();
+end-method;
+
+method PrintMap
+   %This.SortPlayers();
+   Local integer &x, &y, &z;
+   
+   For &y = 1 To &map.Len
+      For &x = 1 To &map [&y].Len
+         %Response.Write(&map [&y, &x].Type);
+      End-For;
+      
+      For &z = 1 To &players.Len
+         If (&players [&z].Y = &y) Then
+            %Response.Write(" " | &players [&z].Type | "[" | &players [&z].X | ", " | &players [&z].Y | "]" | "(" | &players [&z].HP | ")");
+         End-If;
+      End-For;
+      
+      %Response.Write("<br />");
+   End-For;
+   
+end-method;
+
+method SolvePart1
+   /+ Returns String +/
+   /+ Extends/implements TS_AOC2018:Day.SolvePart1 +/
+   
+   %This.ParseInput(3);
+   /* sort players into reading order */
+   Local integer &playerIndex;
+   Local integer &round;
+   &killedType = CreateArrayRept("", 0);
+   While True
+      &round = &round + 1;
+      %This.SortPlayers();
+      &playerIndex = 1;
+      While &playerIndex <= &players.Len
+         rem %Response.Write("Moving player: " | &players [&playerIndex].X | ", " | &players [&playerIndex].Y | "<br />");
+         %This.MovePlayer(&players [&playerIndex]);
+         Local boolean &targetDied = %This.AttackPlayer(&players [&playerIndex]);
+         If (&targetDied) Then
+            &playerIndex = &playerIndex - 1;
+         End-If;
+         &playerIndex = &playerIndex + 1;
+      End-While;
+      /* are we out of players? */
+      &players = %This.MergeSort(&players, "Type", False);
+      If (&players [1].Type = &players [&players.Len].Type) Then
+         /* we have all the same player types */
+         rem %This.PrintMap();
+         Break;
+      End-If;
+      
+   End-While;
+   Local integer &remainingHealth = 0;
+   Local integer &x;
+   For &x = 1 To &players.Len
+      &remainingHealth = &remainingHealth + &players [&x].HP;
+   End-For;
+   
+   Return String(&round * &remainingHealth);
+end-method;
+
+/* This exploits knowledge that we don't exceed a frequency value of 200,000 */
+method SolvePart2
+   /+ Returns String +/
+   /+ Extends/implements TS_AOC2018:Day.SolvePart2 +/
+   Local integer &elfPower = 3;
+   Repeat
+      &elfPower = &elfPower + 1;
+      %This.ParseInput(&elfPower);
+      &killedType = CreateArrayRept("", 0);
+      
+      Local integer &playerIndex = 0;
+      Local integer &round = 0;
+      While True
+         &round = &round + 1;
+         %This.SortPlayers();
+         &playerIndex = 1;
+         While &playerIndex <= &players.Len
+            %This.MovePlayer(&players [&playerIndex]);
+            If &players.Len = 1 Then
+               Break;
+            End-If;
+            Local boolean &targetDiedAdjust = %This.AttackPlayer(&players [&playerIndex]);
+            If (&targetDiedAdjust) Then
+               &playerIndex = &playerIndex - 1;
+            End-If;
+            &playerIndex = &playerIndex + 1;
+         End-While;
+         
+         /* are we out of players? */
+         &players = %This.MergeSort(&players, "Type", False);
+         If (&players [1].Type = &players [&players.Len].Type) Then
+            /* we have all the same player types */
+            rem %This.PrintMap();
+            Break;
+         End-If;
+         
+      End-While;
+      
+      rem %This.PrintMap();
+      If (&killedType.Find("E") = 0) Then
+         %Response.Write("For round: " | (&round - 1) | " no elves died!<br />");
+         %Response.Write("Remaining players: " | &players.Len | "<br />");
+         %Response.Write("Elf power: " | &elfPower | "<br />");
+         Local integer &remainingHealth = 0;
+         Local integer &x;
+         For &x = 1 To &players.Len
+            &remainingHealth = &remainingHealth + &players [&x].HP;
+         End-For;
+         %Response.Write("Remaining health: " | &remainingHealth);
+      End-If;
+      
+      
+   Until &killedType.Find("E") = 0;
+   
+   Return "??";
+end-method;
+
+method MovePlayer
+   /+ &player as TS_AOC2018:Support:Cell +/
+   Local array of TS_AOC2018:Support:Cell &candidates = CreateArrayRept(create TS_AOC2018:Support:Cell(), 0);
+   Local array of TS_AOC2018:Support:Cell &visited = CreateArrayRept(create TS_AOC2018:Support:Cell(), 0);
+   Local array of TS_AOC2018:Support:Cell &possibleTargets = CreateArrayRept(&player, 0);
+   Local TS_AOC2018:Support:Cell &movementChoice;
+   &player.FirstStep = Null;
+   /* treat player cell as already visisted */
+   &candidates.Push(&player);
+   &visited.Push(&player);
+   &player.FloodLevel = 0;
+   Local boolean &firstPass = True;
+   Local integer &foundFloodLevel;
+   
+   While &candidates.Len > 0 And
+         (&possibleTargets.Len = 0 Or
+            &candidates [1].FloodLevel = &foundFloodLevel)
+      Local TS_AOC2018:Support:Cell &candidate = &candidates.Shift();
+      
+      
+      Local TS_AOC2018:Support:Cell &neighbor;
+      /* UP */
+      If (&candidate.Y - 1 > 0) Then
+         &neighbor = &map [&candidate.Y - 1, &candidate.X];
+         If (&visited.Find(&neighbor) = 0) Then
+            If (&firstPass) Then
+               &neighbor.FirstStep = &neighbor;
+            Else
+               &neighbor.FirstStep = &candidate.FirstStep;
+            End-If;
+            If &neighbor.Type = "." Then
+               &visited.Push(&neighbor);
+               &neighbor.FloodLevel = &candidate.FloodLevel + 1;
+               &candidates.Push(&neighbor);
+            Else
+               If (&player.Type = "G" And
+                     &neighbor.Type = "E") Or
+                     (&player.Type = "E" And
+                        &neighbor.Type = "G") Then
+                  /* found an enemy! */
+                  &foundFloodLevel = &candidate.FloodLevel;
+                  &visited.Push(&neighbor);
+                  &possibleTargets.Push(&neighbor);
+               End-If;
+            End-If;
+         End-If;
+      End-If;
+      
+      /* LEFT */
+      If (&candidate.X - 1 > 0) Then
+         &neighbor = &map [&candidate.Y, &candidate.X - 1];
+         If (&visited.Find(&neighbor) = 0) Then
+            If (&firstPass) Then
+               &neighbor.FirstStep = &neighbor;
+            Else
+               &neighbor.FirstStep = &candidate.FirstStep;
+            End-If;
+            If &neighbor.Type = "." Then
+               &visited.Push(&neighbor);
+               &neighbor.FloodLevel = &candidate.FloodLevel + 1;
+               &candidates.Push(&neighbor);
+            Else
+               If (&player.Type = "G" And
+                     &neighbor.Type = "E") Or
+                     (&player.Type = "E" And
+                        &neighbor.Type = "G") Then
+                  /* found an enemy! */
+                  
+                  &foundFloodLevel = &candidate.FloodLevel;
+                  &visited.Push(&neighbor);
+                  &possibleTargets.Push(&neighbor);
+               End-If;
+            End-If;
+         End-If;
+      End-If;
+      
+      /* RIGHT */
+      If (&candidate.X + 1 <= &map [1].Len) Then
+         &neighbor = &map [&candidate.Y, &candidate.X + 1];
+         If (&visited.Find(&neighbor) = 0) Then
+            If (&firstPass) Then
+               &neighbor.FirstStep = &neighbor;
+            Else
+               &neighbor.FirstStep = &candidate.FirstStep;
+            End-If;
+            If &neighbor.Type = "." Then
+               &visited.Push(&neighbor);
+               &neighbor.FloodLevel = &candidate.FloodLevel + 1;
+               &candidates.Push(&neighbor);
+            Else
+               If (&player.Type = "G" And
+                     &neighbor.Type = "E") Or
+                     (&player.Type = "E" And
+                        &neighbor.Type = "G") Then
+                  /* found an enemy! */
+                  &foundFloodLevel = &candidate.FloodLevel;
+                  &visited.Push(&neighbor);
+                  &possibleTargets.Push(&neighbor);
+               End-If;
+            End-If;
+         End-If;
+      End-If;
+      
+      /* DOWN */
+      If (&candidate.Y + 1 <= &map.Len) Then
+         &neighbor = &map [&candidate.Y + 1, &candidate.X];
+         If (&visited.Find(&neighbor) = 0) Then
+            If (&firstPass) Then
+               &neighbor.FirstStep = &neighbor;
+            Else
+               &neighbor.FirstStep = &candidate.FirstStep;
+            End-If;
+            If &neighbor.Type = "." Then
+               &visited.Push(&neighbor);
+               &neighbor.FloodLevel = &candidate.FloodLevel + 1;
+               &candidates.Push(&neighbor);
+            Else
+               If (&player.Type = "G" And
+                     &neighbor.Type = "E") Or
+                     (&player.Type = "E" And
+                        &neighbor.Type = "G") Then
+                  /* found an enemy! */
+                  &foundFloodLevel = &candidate.FloodLevel;
+                  &visited.Push(&neighbor);
+                  &possibleTargets.Push(&neighbor);
+               End-If;
+            End-If;
+         End-If;
+      End-If;
+      &firstPass = False;
+      
+   End-While;
+   
+   If (&possibleTargets.Len > 0) Then
+      If (&possibleTargets.Len > 1) Then
+         
+         &possibleTargets = %This.SortTargets(&possibleTargets);
+         
+         
+      End-If;
+      
+      &movementChoice = &possibleTargets [1].FirstStep;
+      If (&movementChoice <> Null And
+            &movementChoice.Type = ".") Then
+         rem %Response.Write("Moving from " | (&player.X - 1) | ", " | (&player.Y - 1) | " to (" | (&movementChoice.X - 1) | ", " | (&movementChoice.Y - 1) | ")<br/ >");
+         &movementChoice.Type = &player.Type;
+         &movementChoice.Power = &player.Power;
+         &movementChoice.HP = &player.HP;
+         
+         &player.Type = ".";
+         &player.Power = 0;
+         &player.HP = 0;
+         
+         /* find the player in &players and remove, add movementChoice to players */
+         Local integer &playerIndex = &players.Find(&player);
+         
+         &players [&playerIndex] = &movementChoice;
+      Else
+         /* movement choice likely is an enemy...*/
+         
+      End-If;
+   End-If;
+   
+   
+end-method;
+
+method AttackPlayer
+   /+ &player as TS_AOC2018:Support:Cell +/
+   /+ Returns Boolean +/
+   
+   Local string &enemyType;
+   If &player.Type = "G" Then
+      &enemyType = "E";
+   Else
+      &enemyType = "G";
+   End-If;
+   
+   /* empty arry for potential neighbors */
+   Local array of TS_AOC2018:Support:Cell &enemies = CreateArrayRept(&player, 0);
+   
+   /* UP */
+   If (&player.Y - 1 > 0 And
+         &map [&player.Y - 1, &player.X].Type = &enemyType) Then
+      &enemies.Push(&map [&player.Y - 1, &player.X]);
+   End-If;
+   
+   /* LEFT */
+   If (&player.X - 1 > 0 And
+         &map [&player.Y, &player.X - 1].Type = &enemyType) Then
+      &enemies.Push(&map [&player.Y, &player.X - 1]);
+   End-If;
+   
+   /* RIGHT */
+   If (&player.X + 1 <= &map [1].Len And
+         &map [&player.Y, &player.X + 1].Type = &enemyType) Then
+      &enemies.Push(&map [&player.Y, &player.X + 1]);
+   End-If;
+   
+   /* DOWN */
+   If (&player.Y + 1 <= &map.Len And
+         &map [&player.Y + 1, &player.X].Type = &enemyType) Then
+      &enemies.Push(&map [&player.Y + 1, &player.X]);
+   End-If;
+   
+   If (&enemies.Len = 0) Then
+      Return False;
+   End-If;
+   
+   Local integer &lowestHP = 1000;
+   Local TS_AOC2018:Support:Cell &target;
+   Local integer &x;
+   For &x = 1 To &enemies.Len
+      
+      If &enemies [&x].HP < &lowestHP Then
+         &lowestHP = &enemies [&x].HP;
+         &target = &enemies [&x];
+      End-If;
+      
+   End-For;
+   
+   &target.HP = &target.HP - &player.Power;
+   
+   /* did we kill it? */
+   If &target.HP <= 0 Then
+      /* we did...*/
+      &killedType.Push(&target.Type);
+      &target.Type = ".";
+      &target.HP = 0;
+      &target.Power = 0;
+      
+      /* remove from players, making sure to keep order...*/
+      Local integer &targetIndex = &players.Find(&target);
+      Local integer &playerIndex = &players.Find(&player);
+      If (&targetIndex = 0 Or
+            &playerIndex = 0) Then
+         %This.PrintMap();
+         Exit
+      End-If;
+      For &x = &targetIndex + 1 To &players.Len
+         &players [&x - 1] = &players [&x]
+      End-For;
+      &players.Pop();
+      If (&targetIndex < &playerIndex) Then
+         Return True;
+      Else
+         Return False;
+      End-If;
+   End-If;
+   Return False;
+end-method;
+
+method SortTargets
+   /+ &targetList as Array of TS_AOC2018:Support:Cell +/
+   /+ Returns Array of TS_AOC2018:Support:Cell +/
+   
+   &targetList = %This.MergeSort(&targetList, "Y", False);
+   
+   Local array of TS_AOC2018:Support:Cell &sorted = CreateArrayRept(&targetList [1], 0);
+   Local array of TS_AOC2018:Support:Cell &playersToSort = CreateArrayRept(&targetList [1], 0);
+   Local integer &currentY = &targetList [1].Y;
+   &playersToSort.Push(&targetList [1]);
+   Local integer &x, &y;
+   For &x = 2 To &targetList.Len
+      
+      If (&targetList [&x].Y <> &currentY) Then
+         /* sort the &playersToSort and shove in &sorted */
+         &playersToSort = %This.MergeSort(&playersToSort, "X", False);
+         While &playersToSort.Len > 0
+            &sorted.Push(&playersToSort.Shift());
+         End-While;
+         &playersToSort.Push(&targetList [&x]);
+         &currentY = &targetList [&x].Y;
+      Else
+         &playersToSort.Push(&targetList [&x]);
+      End-If;
+   End-For;
+   &playersToSort = %This.MergeSort(&playersToSort, "X", False);
+   While &playersToSort.Len > 0
+      &sorted.Push(&playersToSort.Shift());
+   End-While;
+   &targetList = &sorted;
+   
+   Return &targetList;
+end-method;
+
+method SortPlayers
+   &players = %This.MergeSort(&players, "Y", False);
+   Local array of TS_AOC2018:Support:Cell &sorted = CreateArrayRept(&players [1], 0);
+   Local array of TS_AOC2018:Support:Cell &playersToSort = CreateArrayRept(&players [1], 0);
+   Local integer &currentY = &players [1].Y;
+   &playersToSort.Push(&players [1]);
+   Local integer &x, &y;
+   For &x = 2 To &players.Len
+      
+      If (&players [&x].Y <> &currentY) Then
+         /* sort the &playersToSort and shove in &sorted */
+         &playersToSort = %This.MergeSort(&playersToSort, "X", False);
+         While &playersToSort.Len > 0
+            &sorted.Push(&playersToSort.Shift());
+         End-While;
+         &playersToSort.Push(&players [&x]);
+         &currentY = &players [&x].Y;
+      Else
+         &playersToSort.Push(&players [&x]);
+      End-If;
+   End-For;
+   &playersToSort = %This.MergeSort(&playersToSort, "X", False);
+   While &playersToSort.Len > 0
+      &sorted.Push(&playersToSort.Shift());
+   End-While;
+   &players = &sorted;
+end-method;
+
+method MergeSort
+   /+ &array as Array of TS_AOC2018:Support:Cell, +/
+   /+ &sField as String, +/
+   /+ &bDescending as Boolean +/
+   /+ Returns Array of TS_AOC2018:Support:Cell +/
+   
+   /* If MergeSort was called on an empty array, return immediately as 
+       Sorting makes no sense in this context. This check is seperate from
+       the one below because it has a different meaning */
+   If (&array.Len = 0) Then
+      Return &array;
+   End-If;
+   
+   /* Stop the recursion! */
+   If (&array.Len = 1) Then
+      Return &array;
+   End-If;
+   
+   Local integer &halfPoint = &array.Len / 2;
+   Local TS_AOC2018:Support:Cell &arrayType;
+   Local array of TS_AOC2018:Support:Cell &array1 = &array.Subarray(1, &halfPoint);
+   Local array of TS_AOC2018:Support:Cell &array2 = &array.Subarray(&halfPoint + 1, &array.Len - &halfPoint);
+   
+   Local array of TS_AOC2018:Support:Cell &sorted = CreateArrayRept(&arrayType, 0);
+   &array1 = %This.MergeSort(&array1, &sField, &bDescending);
+   &array2 = %This.MergeSort(&array2, &sField, &bDescending);
+   Local integer &_index;
+   Local object &obj1, &obj2;
+   Local any &val1, &val2;
+   For &_index = 1 To (&array1.Len + &array2.Len)
+      
+      If (&array1.Len = 0) Then
+         /* all out of left items, add from the right */
+         &sorted.Push(&array2.Shift());
+      Else
+         If (&array2.Len = 0) Then
+            /* all out of right items, add from the left */
+            &sorted.Push(&array1.Shift());
+            
+         Else
+            /* still have items in both, we need to compare them */
+            &obj1 = &array1 [1];
+            &obj2 = &array2 [1];
+            &val1 = ObjectGetProperty(&obj1, &sField);
+            &val2 = ObjectGetProperty(&obj2, &sField);
+            
+            If (&bDescending) Then
+               If (&val1 > &val2) Then
+                  &sorted.Push(&array1.Shift());
+               Else
+                  If (&val1 < &val2) Then
+                     &sorted.Push(&array2.Shift());
+                  Else
+                     &sorted.Push(&array1.Shift());
+                  End-If;
+                  
+               End-If;
+            Else
+               If (&val1 < &val2) Then
+                  &sorted.Push(&array1.Shift());
+               Else
+                  If (&val1 > &val2) Then
+                     &sorted.Push(&array2.Shift());
+                  Else
+                     &sorted.Push(&array1.Shift());
+                  End-If;
+               End-If;
+            End-If;
+         End-If;
+      End-If;
+   End-For;
+   
+   Return &sorted;
+end-method;
+
+get Description
+   /+ Returns String +/
+   Return "Beverage Bandits";
+end-get;
+
