@@ -1,0 +1,8 @@
+class Acre
+   /* 0 = Open, 1 = wooded, 2 = lumberyard */
+   
+   property integer State;
+   property integer NextState;
+   
+end-class;
+
