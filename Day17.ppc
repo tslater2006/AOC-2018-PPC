@@ -1,4 +1,3 @@
-import TS_AOC2018:Support:Guard;
 import TS_AOC2018:Day;
 
 class Day17 extends TS_AOC2018:Day
