@@ -1,0 +1,561 @@
+import TS_AOC2018:Support:Guard;
+import TS_AOC2018:Day;
+
+class Day16 extends TS_AOC2018:Day
+   method Day16();
+   
+   property string Description get;
+   method SolvePart1() Returns string;
+   method SolvePart2() Returns string;
+   
+   /* opcode functions */
+   method addi(&a As number, &b As number, &c As number);
+   method addr(&a As number, &b As number, &c As number);
+   method muli(&a As number, &b As number, &c As number);
+   method mulr(&a As number, &b As number, &c As number);
+   method bani(&a As number, &b As number, &c As number);
+   method banr(&a As number, &b As number, &c As number);
+   method bori(&a As number, &b As number, &c As number);
+   method borr(&a As number, &b As number, &c As number);
+   method seti(&a As number, &b As number, &c As number);
+   method setr(&a As number, &b As number, &c As number);
+   
+   method gtir(&a As number, &b As number, &c As number);
+   method gtri(&a As number, &b As number, &c As number);
+   method gtrr(&a As number, &b As number, &c As number);
+   
+   method eqir(&a As number, &b As number, &c As number);
+   method eqri(&a As number, &b As number, &c As number);
+   method eqrr(&a As number, &b As number, &c As number);
+   
+private
+   method ParseInput();
+   
+   method TestExample(&exampleIndex As number) Returns number;
+   method GetCandidates(&exampleIndex As number) Returns array of string;
+   
+   /* bitwise helpers */
+   method GetBits(&x As number) Returns array of any;
+   method GetNumber(&bits As array of any) Returns number;
+   method NormalizeBitCounts(&arr1 As array of any, &arr2 As array of any);
+   method BitwiseAnd(&int1 As number, &int2 As number) Returns number;
+   method BitwiseOr(&int1 As number, &int2 As number) Returns number;
+   method BitAnd(&a As number, &b As number) Returns boolean;
+   method BitOr(&a As number, &b As number) Returns boolean;
+   
+   instance array of number &registers;
+   
+   instance array of array of number &exampleInputs;
+   instance array of array of number &exampleOutputs;
+   instance array of array of number &exampleInstructions;
+   instance array of array of number &programInstructions;
+end-class;
+
+method Day16
+   %Super = create TS_AOC2018:Day("TS_AOC_DAY16_INPUT");
+   &registers = CreateArrayRept(0, 4);
+   
+end-method;
+
+method ParseInput
+   
+   /* Init the arrays */
+   &exampleInputs = CreateArrayRept(CreateArrayRept(0, 0), 0);
+   &exampleOutputs = CreateArrayRept(CreateArrayRept(0, 0), 0);
+   &exampleInstructions = CreateArrayRept(CreateArrayRept(0, 0), 0);
+   &programInstructions = CreateArrayRept(CreateArrayRept(0, 0), 0);
+   Local integer &x, &y;
+   
+   For &x = 1 To %This.Lines.Len
+      If (Find("Before: ", %This.Lines [&x]) = 0) Then
+         /* we're all done with examples */
+         Break;
+      End-If;
+      If (Find("Before: ", %This.Lines [&x]) = 1) Then
+         /* found an example */
+         Local array of string &inputRegString = Split(Substitute(Substitute(%This.Lines [&x], "Before: [", ""), "]", ""), ", ");
+         Local array of string &instructionString = Split(%This.Lines [&x + 1], " ");
+         Local array of string &outputRegString = Split(Substitute(Substitute(%This.Lines [&x + 2], "After:  [", ""), "]", ""), ", ");
+         
+         Local array of number &inputRegs = CreateArrayRept(0, 0);
+         For &y = 1 To &inputRegString.Len
+            &inputRegs.Push(Value(&inputRegString [&y]));
+         End-For;
+         &exampleInputs.Push(&inputRegs);
+         
+         Local array of number &outputRegs = CreateArrayRept(0, 0);
+         For &y = 1 To &outputRegString.Len
+            &outputRegs.Push(Value(&outputRegString [&y]));
+         End-For;
+         &exampleOutputs.Push(&outputRegs);
+         
+         Local array of number &instr = CreateArrayRept(0, 0);
+         For &y = 1 To &instructionString.Len
+            &instr.Push(Value(&instructionString [&y]));
+         End-For;
+         &exampleInstructions.Push(&instr);
+         
+      End-If;
+      &x = &x + 3
+   End-For;
+   
+   For &x = &x To %This.Lines.Len
+      If (Len(RTrim(%This.Lines [&x])) = 0) Then
+         Continue;
+      End-If;
+      &instr = CreateArrayRept(0, 0);
+      &instructionString = Split(%This.Lines [&x], " ");
+      For &y = 1 To &instructionString.Len
+         &instr.Push(Value(&instructionString [&y]));
+      End-For;
+      &programInstructions.Push(&instr);
+   End-For;
+   
+end-method;
+
+
+
+method GetCandidates
+   /+ &exampleIndex as Number +/
+   /+ Returns Array of String +/
+   
+   Local array of string &candidates = CreateArrayRept("", 0);
+   
+   Local array of string &methods = Split("addi,addr,muli,mulr,bani,banr,bori,borr,seti,setr,gtir,gtri,gtrr,eqir,eqri,eqrr", ",");
+   Local integer &x;
+   
+   For &x = 1 To &methods.Len
+      
+      /* prep registers */
+      &registers [1] = &exampleInputs [&exampleIndex][1];
+      &registers [2] = &exampleInputs [&exampleIndex][2];
+      &registers [3] = &exampleInputs [&exampleIndex][3];
+      &registers [4] = &exampleInputs [&exampleIndex][4];
+      
+      /* call the method */
+      try
+         ObjectDoMethod(%This, &methods [&x], &exampleInstructions [&exampleIndex][2], &exampleInstructions [&exampleIndex][3], &exampleInstructions [&exampleIndex][4]);
+      catch Exception &ex
+      end-try;
+      
+      If (&registers [1] = &exampleOutputs [&exampleIndex][1] And
+            &registers [2] = &exampleOutputs [&exampleIndex][2] And
+            &registers [3] = &exampleOutputs [&exampleIndex][3] And
+            &registers [4] = &exampleOutputs [&exampleIndex][4]) Then
+         &candidates.Push(&methods [&x]);
+      End-If;
+      
+   End-For;
+   Return &candidates;
+end-method;
+
+method TestExample
+   /+ &exampleIndex as Number +/
+   /+ Returns Number +/
+   
+   Local number &optionCount = 0;
+   
+   Local array of string &methods = Split("addi,addr,muli,mulr,bani,banr,bori,borr,seti,setr,gtir,gtri,gtrr,eqir,eqri,eqrr", ",");
+   Local integer &x;
+   
+   For &x = 1 To &methods.Len
+      
+      /* prep registers */
+      &registers [1] = &exampleInputs [&exampleIndex][1];
+      &registers [2] = &exampleInputs [&exampleIndex][2];
+      &registers [3] = &exampleInputs [&exampleIndex][3];
+      &registers [4] = &exampleInputs [&exampleIndex][4];
+      
+      /* call the method */
+      try
+         ObjectDoMethod(%This, &methods [&x], &exampleInstructions [&exampleIndex][2], &exampleInstructions [&exampleIndex][3], &exampleInstructions [&exampleIndex][4]);
+      catch Exception &ex
+      end-try;
+      
+      If (&registers [1] = &exampleOutputs [&exampleIndex][1] And
+            &registers [2] = &exampleOutputs [&exampleIndex][2] And
+            &registers [3] = &exampleOutputs [&exampleIndex][3] And
+            &registers [4] = &exampleOutputs [&exampleIndex][4]) Then
+         &optionCount = &optionCount + 1;
+      End-If;
+      
+   End-For;
+   Return &optionCount;
+end-method;
+
+method SolvePart1
+   /+ Returns String +/
+   /+ Extends/implements TS_AOC2018:Day.SolvePart1 +/
+   %This.ParseInput();
+   
+   Local integer &x, &y, &z;
+   Local number &examplesMatch3Count;
+   
+   
+   For &x = 1 To &exampleInputs.Len
+      Local integer &optionCount = %This.TestExample(&x);
+      If (&optionCount >= 3) Then
+         &examplesMatch3Count = &examplesMatch3Count + 1;
+      End-If;
+      
+   End-For;
+   Return String(&examplesMatch3Count);
+end-method;
+
+/* This exploits knowledge that we don't exceed a frequency value of 200,000 */
+method SolvePart2
+   /+ Returns String +/
+   /+ Extends/implements TS_AOC2018:Day.SolvePart2 +/
+   
+   %This.ParseInput();
+   
+   Local integer &x, &y, &z;
+   Local number &examplesMatch3Count;
+   Local array of array of string &opCodeCandidates = CreateArrayRept(CreateArrayRept("", 0), 16);
+   For &x = 1 To &exampleInputs.Len
+      Local array of string &candidates = %This.GetCandidates(&x);
+      
+      
+      Local number &opcode = &exampleInstructions [&x][1];
+      Local array of string &currentOpCodeCandidates = &opCodeCandidates [&opcode + 1];
+      If (&currentOpCodeCandidates.Len = 0) Then
+         /* add all of ours */
+         &currentOpCodeCandidates = Split("addi,addr,muli,mulr,bani,banr,bori,borr,seti,setr,gtir,gtri,gtrr,eqir,eqri,eqrr", ",")
+      End-If;
+      
+      /* we have existing candidates, only keep ones in both */
+      Local array of string &newCandidates = CreateArrayRept("", 0);
+      For &y = 1 To &candidates.Len
+         
+         If (&currentOpCodeCandidates.Find(&candidates [&y]) > 0 And
+               &newCandidates.Find(&candidates [&y]) = 0) Then
+            /* new candidate is in old list and not in new list yet, add */
+            &newCandidates.Push(&candidates [&y]);
+         End-If;
+      End-For;
+      
+      &opCodeCandidates [&opcode + 1] = &newCandidates;
+      
+   End-For;
+   
+   /* we have all possible combos, time to resolve them down */
+   Local integer &loopProtect = 0;
+   Local array of string &uniqueOps = CreateArrayRept("", 16);
+   
+   While True And
+         &loopProtect < 1000
+      If (&uniqueOps.Find("") = 0) Then
+         Break;
+      End-If;
+      For &x = 1 To &opCodeCandidates.Len
+         If (&opCodeCandidates [&x].Len = 1) Then
+            &uniqueOps [&x] = &opCodeCandidates [&x][1];
+            
+         End-If;
+      End-For;
+      
+      /* go through our list of unique opcodes, and remove them from everyone else */
+      For &x = 1 To &uniqueOps.Len
+         
+         For &y = 1 To &opCodeCandidates.Len
+            Local array of string &newCandidateList = CreateArrayRept("", 0);
+            For &z = 1 To &opCodeCandidates [&y].Len
+               
+               If (&opCodeCandidates [&y, &z] <> &uniqueOps [&x]) Then
+                  &newCandidateList.Push(&opCodeCandidates [&y, &z]);
+               End-If;
+               
+            End-For;
+            
+            &opCodeCandidates [&y] = &newCandidateList;
+            
+         End-For;
+      End-For;
+      
+      
+      
+      &loopProtect = &loopProtect + 1;
+   End-While;
+   
+   &registers [1] = 0;
+   &registers [2] = 0;
+   &registers [3] = 0;
+   &registers [4] = 0;
+   
+   For &x = 1 To &programInstructions.Len
+      ObjectDoMethod(%This, &uniqueOps [&programInstructions [&x, 1] + 1], &programInstructions [&x][2], &programInstructions [&x][3], &programInstructions [&x][4]);
+   End-For;
+   
+   Return String(&registers [1]);
+end-method;
+
+get Description
+   /+ Returns String +/
+   Return "Chronal Classification";
+end-get;
+
+method addi
+   /+ &a as Number, +/
+   /+ &b as Number, +/
+   /+ &c as Number +/
+   &registers [&c + 1] = &registers [&a + 1] + &b;
+end-method;
+
+method addr
+   /+ &a as Number, +/
+   /+ &b as Number, +/
+   /+ &c as Number +/
+   &registers [&c + 1] = &registers [&a + 1] + &registers [&b + 1];
+end-method;
+
+method muli
+   /+ &a as Number, +/
+   /+ &b as Number, +/
+   /+ &c as Number +/
+   &registers [&c + 1] = &registers [&a + 1] * &b;
+end-method;
+
+method mulr
+   /+ &a as Number, +/
+   /+ &b as Number, +/
+   /+ &c as Number +/
+   &registers [&c + 1] = &registers [&a + 1] * &registers [&b + 1];
+end-method;
+
+method bani
+   /+ &a as Number, +/
+   /+ &b as Number, +/
+   /+ &c as Number +/
+   &registers [&c + 1] = %This.BitwiseAnd(&registers [&a + 1], &b);
+end-method;
+
+method banr
+   /+ &a as Number, +/
+   /+ &b as Number, +/
+   /+ &c as Number +/
+   &registers [&c + 1] = %This.BitwiseAnd(&registers [&a + 1], &registers [&b + 1]);
+end-method;
+
+method bori
+   /+ &a as Number, +/
+   /+ &b as Number, +/
+   /+ &c as Number +/
+   &registers [&c + 1] = %This.BitwiseOr(&registers [&a + 1], &b);
+end-method;
+
+method borr
+   /+ &a as Number, +/
+   /+ &b as Number, +/
+   /+ &c as Number +/
+   &registers [&c + 1] = %This.BitwiseOr(&registers [&a + 1], &registers [&b + 1]);
+end-method;
+
+method seti
+   /+ &a as Number, +/
+   /+ &b as Number, +/
+   /+ &c as Number +/
+   &registers [&c + 1] = &a;
+end-method;
+
+method setr
+   /+ &a as Number, +/
+   /+ &b as Number, +/
+   /+ &c as Number +/
+   &registers [&c + 1] = &registers [&a + 1];
+end-method;
+
+method gtir
+   /+ &a as Number, +/
+   /+ &b as Number, +/
+   /+ &c as Number +/
+   If &a > &registers [&b + 1] Then
+      &registers [&c + 1] = 1;
+   Else
+      &registers [&c + 1] = 0;
+   End-If;
+end-method;
+
+method gtri
+   /+ &a as Number, +/
+   /+ &b as Number, +/
+   /+ &c as Number +/
+   If &registers [&a + 1] > &b Then
+      &registers [&c + 1] = 1;
+   Else
+      &registers [&c + 1] = 0;
+   End-If;
+end-method;
+
+method gtrr
+   /+ &a as Number, +/
+   /+ &b as Number, +/
+   /+ &c as Number +/
+   If &registers [&a + 1] > &registers [&b + 1] Then
+      &registers [&c + 1] = 1;
+   Else
+      &registers [&c + 1] = 0;
+   End-If;
+end-method;
+
+method eqir
+   /+ &a as Number, +/
+   /+ &b as Number, +/
+   /+ &c as Number +/
+   If &a = &registers [&b + 1] Then
+      &registers [&c + 1] = 1;
+   Else
+      &registers [&c + 1] = 0;
+   End-If;
+end-method;
+
+method eqri
+   /+ &a as Number, +/
+   /+ &b as Number, +/
+   /+ &c as Number +/
+   If &registers [&a + 1] = &b Then
+      &registers [&c + 1] = 1;
+   Else
+      &registers [&c + 1] = 0;
+   End-If;
+end-method;
+
+method eqrr
+   /+ &a as Number, +/
+   /+ &b as Number, +/
+   /+ &c as Number +/
+   If &registers [&a + 1] = &registers [&b + 1] Then
+      &registers [&c + 1] = 1;
+   Else
+      &registers [&c + 1] = 0;
+   End-If;
+end-method;
+
+method GetBits
+   /+ &x as Number +/
+   /+ Returns Array of Any +/
+   Local array of any &bits = CreateArray();
+   
+   While (&x > 1)
+      Local integer &bit = Mod(&x, 2);
+      &bits.Push(&bit);
+      &x = Idiv(&x, 2);
+   End-While;
+   If (&x = 1) Then
+      &bits.Push(1);
+   End-If;
+   
+   &bits.Reverse();
+   
+   Return &bits;
+   
+end-method;
+
+method GetNumber
+   /+ &bits as Array of Any +/
+   /+ Returns Number +/
+   Local integer &answer;
+   
+   Local integer &bit;
+   
+   Local integer &x;
+   
+   For &x = 1 To &bits.Len
+      If (&bits [&x] = 1) Then
+         &answer = &answer + 1;
+      End-If;
+      
+      If (&x < &bits.Len) Then
+         &answer = &answer * 2;
+      End-If;
+   End-For;
+   Return &answer;
+end-method;
+
+method NormalizeBitCounts
+   /+ &arr1 as Array of Any, +/
+   /+ &arr2 as Array of Any +/
+   If (&arr1.Len = &arr2.Len) Then
+      Return;
+   End-If;
+   
+   Local integer &maxLength = &arr1.Len;
+   If (&arr2.Len > &maxLength) Then
+      &maxLength = &arr2.Len;
+   End-If;
+   Local integer &x;
+   If (&arr2.Len < &maxLength) Then
+      &arr2.Reverse();
+      For &x = 1 To &maxLength - &arr2.Len
+         &arr2.Push(0);
+         
+      End-For;
+      &arr2.Reverse();
+   End-If;
+   If (&arr1.Len < &maxLength) Then
+      &arr1.Reverse();
+      For &x = 1 To &maxLength - &arr1.Len
+         &arr1.Push(0);
+         
+      End-For;
+      &arr1.Reverse();
+   End-If;
+   
+end-method;
+
+method BitAnd
+   /+ &a as Number, +/
+   /+ &b as Number +/
+   /+ Returns Boolean +/
+   Return (&a = &b);
+end-method;
+
+method BitOr
+   /+ &a as Number, +/
+   /+ &b as Number +/
+   /+ Returns Boolean +/
+   Return (&a = 1 Or
+      &b = 1);
+end-method;
+
+method BitwiseAnd
+   /+ &int1 as Number, +/
+   /+ &int2 as Number +/
+   /+ Returns Number +/
+   Local array of any &bits1 = %This.GetBits(&int1);
+   Local array of any &bits2 = %This.GetBits(&int2);
+   
+   %This.NormalizeBitCounts(&bits1, &bits2);
+   
+   Local integer &x;
+   
+   Local array of any &andBits = CreateArray();
+   Local integer &bitAnswer;
+   For &x = 1 To &bits1.Len
+      &bitAnswer = Value(%This.BitAnd(&bits1 [&x], &bits2 [&x]));
+      &andBits.Push(&bitAnswer);
+   End-For;
+   
+   
+   Return %This.GetNumber(&andBits);
+end-method;
+
+method BitwiseOr
+   /+ &int1 as Number, +/
+   /+ &int2 as Number +/
+   /+ Returns Number +/
+   Local array of any &bits1 = %This.GetBits(&int1);
+   Local array of any &bits2 = %This.GetBits(&int2);
+   %This.NormalizeBitCounts(&bits1, &bits2);
+   Local integer &x;
+   
+   Local array of any &orBits = CreateArray();
+   Local integer &bitAnswer;
+   For &x = 1 To &bits1.Len
+      &bitAnswer = Value(%This.BitOr(&bits1 [&x], &bits2 [&x]));
+      &orBits.Push(&bitAnswer);
+   End-For;
+   
+   
+   Return %This.GetNumber(&orBits);
+end-method;
+
