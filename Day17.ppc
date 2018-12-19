@@ -1,0 +1,295 @@
+import TS_AOC2018:Support:Guard;
+import TS_AOC2018:Day;
+
+class Day17 extends TS_AOC2018:Day
+   method Day17();
+   
+   property string Description get;
+   method SolvePart1() Returns string;
+   method SolvePart2() Returns string;
+   
+private
+   method ParseInput();
+   method PrintGrid();
+   
+   
+   instance array of array of string &grid;
+   instance number &minX, &minY, &maxX, &maxY;
+   
+   instance array of array of number &flows;
+   instance array of array of number &falls;
+end-class;
+
+method Day17
+   %Super = create TS_AOC2018:Day("TS_AOC_DAY17_INPUT");
+   %Response.Write("<style>body{font-family:""Courier New"", Courier, monospace;font-size:6px;font-weight:bold;}</style>");
+   &grid = CreateArrayRept(CreateArrayRept("", 0), 0);
+   &falls = CreateArrayRept(CreateArrayRept(0, 0), 0);
+   &flows = CreateArrayRept(CreateArrayRept(0, 0), 0);
+   Local integer &y;
+   For &y = 1 To 2000
+      &grid.Push(CreateArrayRept(".", 2000));
+   End-For;
+end-method;
+
+method PrintGrid
+   
+   Local integer &y, &x;
+   
+   For &y = 1 To &maxY + 1
+      If (&y < 1000) Then
+         %Response.Write("0");
+      End-If;
+      If (&y < 100) Then
+         %Response.Write("0");
+      End-If;
+      If (&y < 10) Then
+         %Response.Write("0");
+      End-If;
+      %Response.Write(&y | " ");
+      For &x = &minX - 1 To &maxX + 20
+         
+         If (&grid [&y, &x] = "#") Then
+            %Response.Write("<span style=""color:brown;background-color:brown;"">" | &grid [&y, &x] | "</span>");
+         Else
+            If (&grid [&y, &x] = "~") Then
+               %Response.Write("<span style=""color:white;background-color:blue;"">" | &grid [&y, &x] | "</span>");
+            Else
+               If (&grid [&y, &x] = ".") Then
+                  /* %Response.Write("<span style=""color:darkgray;background-color:darkgray;"">" | &grid [&y, &x] | "</span>");*/
+                  %Response.Write(&grid [&y, &x]);
+               Else
+                  If (&grid [&y, &x] = "|") Then
+                     %Response.Write("<span style=""color:lightblue;background-color:lightblue;"">" | &grid [&y, &x] | "</span>");
+                  End-If;
+               End-If;
+            End-If;
+            
+         End-If;
+      End-For;
+      %Response.Write("<br />");
+   End-For;
+   
+end-method;
+
+method ParseInput
+   Local integer &i, &x, &y;
+   Local integer &startX, &startY, &endX, &endY;
+   
+   /* set the mins really high */
+   &minY = 5000;
+   &minX = 5000;
+   
+   For &i = 1 To %This.Lines.Len
+      
+      Local string &currentLine = %This.Lines [&i];
+      
+      Local array of string &parts = Split(&currentLine, ", ");
+      
+      If (Find("x", &currentLine) = 1) Then
+         /* line starts with x */
+         &parts [1] = Substitute(&parts [1], "x=", "");
+         &parts [2] = Substitute(&parts [2], "y=", "");
+         
+         &startX = Value(&parts [1]);
+         Local array of string &yParts = Split(&parts [2], "..");
+         &startY = Value(&yParts [1]);
+         &endY = Value(&yParts [2]);
+         
+         If (&startX < &minX) Then
+            &minX = &startX;
+         End-If;
+         If (&startX > &maxX) Then
+            &maxX = &startX;
+         End-If;
+         
+         If (&startY < &minY) Then
+            &minY = &startY;
+         End-If;
+         
+         If (&endY > &maxY) Then
+            &maxY = &endY;
+         End-If;
+         
+         For &y = &startY To &endY
+            &grid [&y + 1][&startX + 1] = "#";
+         End-For;
+         
+      Else
+         /* line starts with y */
+         &parts [1] = Substitute(&parts [1], "y=", "");
+         &parts [2] = Substitute(&parts [2], "x=", "");
+         
+         &startY = Value(&parts [1]);
+         Local array of string &xParts = Split(&parts [2], "..");
+         &startX = Value(&xParts [1]);
+         &endX = Value(&xParts [2]);
+         
+         If (&startY < &minY) Then
+            &minY = &startY;
+         End-If;
+         If (&startY > &maxY) Then
+            &maxY = &startY;
+         End-If;
+         
+         If (&startX < &minX) Then
+            &minX = &startX;
+         End-If;
+         
+         If (&endX > &maxX) Then
+            &maxX = &endX;
+         End-If;
+         
+         For &x = &startX To &endX
+            &grid [&startY + 1][&x + 1] = "#";
+         End-For;
+         
+      End-If;
+      
+   End-For;
+end-method;
+
+method SolvePart1
+   /+ Returns String +/
+   /+ Extends/implements TS_AOC2018:Day.SolvePart1 +/
+   Local integer &x, &y, &z;
+   %This.ParseInput();
+   
+   Local array of array of number &waterSources = CreateArrayRept(CreateArrayRept(0, 0), 0);
+   &waterSources.Push(CreateArray(500, 0));
+   
+   While &waterSources.Len > 0
+      Local array of number &currentSource = &waterSources.Pop();
+      &x = &currentSource [1];
+      &y = &currentSource [2];
+      
+      If (&grid [&y + 1, &x + 1] = "~") Then
+         /* this water source got changed to standing water, ignore */
+         Continue;
+      End-If;
+      
+      &y = &y + 1;
+      While &y <= &maxY + 1
+         
+         Local string &cell = &grid [&y + 1, &x + 1];
+         
+         If (&cell = ".") Then
+            &grid [&y + 1, &x + 1] = "|";
+            &y = &y + 1;
+         Else
+            If &cell = "#" Or
+                  &cell = "~" Then
+               &y = &y - 1;
+               /* we've hit a wall or standing water, begin filling */
+               
+               /* check the left for a wall or overflow */
+               Local integer &leftX = &x;
+               Local boolean &leftOverflow = False;
+               While &leftX > &minX - 1;
+                  Local string &cur = &grid [&y + 1, &leftX + 1];
+                  Local string &below = &grid [&y + 2, &leftX + 1];
+                  If (&cur = "#") Then
+                     /* we've hit a wall */
+                     &leftX = &leftX + 1;
+                     Break;
+                  End-If;
+                  
+                  If (&below = ".") Then
+                     /* there's free space below us, we've fallen off the left side */
+                     &leftOverflow = True;
+                     &waterSources.Push(CreateArray(&leftX, &y));
+                     Break;
+                  End-If;
+                  If (&cur = "|" And
+                        &below = "|") Then
+                     /* we've fallen into an existing stream */
+                     &leftOverflow = True;
+                     Break;
+                  End-If;
+                  &leftX = &leftX - 1;
+               End-While;
+               Local integer &rightX = &x;
+               Local boolean &rightOverflow = False;
+               While &rightX < &maxX + 2;
+                  &cur = &grid [&y + 1, &rightX + 1];
+                  &below = &grid [&y + 2, &rightX + 1];
+                  If (&cur = "#") Then
+                     /* we've hit a wall */
+                     &rightX = &rightX - 1;
+                     Break;
+                  End-If;
+                  
+                  If (&below = ".") Then
+                     /* there's free space below us, we've fallen off the left side */
+                     &rightOverflow = True;
+                     &waterSources.Push(CreateArray(&rightX, &y));
+                     Break;
+                  End-If;
+                  If (&cur = "|" And
+                        &below = "|") Then
+                     /* we've fallen into an existing stream */
+                     &rightOverflow = True;
+                     Break;
+                  End-If;
+                  &rightX = &rightX + 1;
+               End-While;
+               
+               Local boolean &hasOverflow = (&leftOverflow Or
+                  &rightOverflow);
+               Local integer &x_;
+               For &x_ = &leftX To &rightX
+                  If (&hasOverflow) Then
+                     &grid [&y + 1, &x_ + 1] = "|"
+                  Else
+                     &grid [&y + 1, &x_ + 1] = "~"
+                  End-If;
+               End-For;
+               
+            Else
+               If &cell = "|" Then
+                  /* we've fallen onto already flowing water, abort */
+                  Break;
+               End-If;
+            End-If;
+         End-If;
+      End-While;
+      
+      
+   End-While;
+   Local number &totalWater;
+   For &y = &minY To &maxY
+      For &x = &minX - 1 To &maxX + 1
+         If (&grid [&y + 1, &x + 1] = "~" Or
+               &grid [&y + 1, &x + 1] = "|") Then
+            &totalWater = &totalWater + 1;
+         End-If;
+      End-For;
+   End-For;
+   
+   rem %This.PrintGrid();
+   
+   Return String(&totalWater);
+end-method;
+
+method SolvePart2
+   /+ Returns String +/
+   /+ Extends/implements TS_AOC2018:Day.SolvePart2 +/
+   Local number &totalWater, &x, &y;
+   For &y = &minY To &maxY
+      For &x = &minX - 1 To &maxX + 1
+         If (&grid [&y + 1, &x + 1] = "~") Then
+            &totalWater = &totalWater + 1;
+         End-If;
+      End-For;
+   End-For;
+   
+   rem %This.PrintGrid();
+   Return String(&totalWater);
+end-method;
+
+
+get Description
+   /+ Returns String +/
+   Return "Reservoir Research";
+end-get;
+
