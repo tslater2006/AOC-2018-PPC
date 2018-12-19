@@ -1,0 +1,312 @@
+import TS_AOC2018:Support:Acre;
+import TS_AOC2018:Day;
+
+class Day18 extends TS_AOC2018:Day
+   method Day18();
+   
+   property string Description get;
+   method SolvePart1() Returns string;
+   method SolvePart2() Returns string;
+   
+private
+   method ParseInput();
+   method PrintGrid();
+   method RunMinute() Returns string;
+   instance array of array of TS_AOC2018:Support:Acre &grid;
+   
+end-class;
+
+method Day18
+   %Super = create TS_AOC2018:Day("TS_AOC_DAY18_INPUT");
+   
+   %This.ParseInput();
+   %Response.Write("<style>body{font-family:""Courier New"", Courier, monospace;}</style>");
+   
+end-method;
+
+method ParseInput
+   Local integer &x, &y;
+   &grid = CreateArrayRept(CreateArrayRept(create TS_AOC2018:Support:Acre(), 0), 0);
+   
+   For &y = 1 To %This.Lines.Len
+      
+      Local array of string &acreList = Split(%This.Lines [&y], "");
+      Local array of TS_AOC2018:Support:Acre &line = CreateArrayRept(create TS_AOC2018:Support:Acre(), 0);
+      For &x = 1 To &acreList.Len
+         Local TS_AOC2018:Support:Acre &curAcre = create TS_AOC2018:Support:Acre();
+         
+         Evaluate &acreList [&x]
+         When = "."
+            &curAcre.State = 0;
+            Break;
+         When = "|"
+            &curAcre.State = 1;
+            Break;
+         When = "#"
+            &curAcre.State = 2;
+            Break;
+         End-Evaluate;
+         &line.Push(&curAcre);
+      End-For;
+      &grid.Push(&line);
+   End-For;
+   
+   %Response.Write("Loaded Acre of " | &grid [1].Len | " x " | &grid.Len | "<br />");
+   rem %This.PrintGrid();
+end-method;
+
+method PrintGrid
+   %Response.Write("<br />");
+   Local integer &x, &y;
+   For &y = 1 To &grid.Len
+      
+      For &x = 1 To &grid [&y].Len
+         Local TS_AOC2018:Support:Acre &curAcre = &grid [&y, &x];
+         
+         Evaluate &curAcre.State
+         When = 0
+            %Response.Write(".");
+            Break;
+         When = 1
+            %Response.Write("|");
+            Break;
+         When = 2
+            %Response.Write("#");
+            Break;
+         End-Evaluate;
+      End-For;
+      %Response.Write("<br />");
+   End-For;
+end-method;
+
+method RunMinute
+   /+ Returns String +/
+   
+   Local integer &x, &y;
+   Local integer &treeCount, &lumberCount;
+   For &y = 1 To &grid.Len
+      
+      For &x = 1 To &grid [&y].Len
+         &treeCount = 0;
+         &lumberCount = 0;
+         /* count the neighbords */
+         
+         /* Top */
+         If (&y - 1 >= 1) Then
+            
+            Evaluate &grid [&y - 1, &x].State
+            When = 1
+               &treeCount = &treeCount + 1;
+               Break;
+            When = 2
+               &lumberCount = &lumberCount + 1;
+               Break;
+            End-Evaluate;
+         End-If;
+         /* Top Left */
+         If (&y - 1 >= 1 And
+               &x - 1 >= 1) Then
+            
+            Evaluate &grid [&y - 1, &x - 1].State
+            When = 1
+               &treeCount = &treeCount + 1;
+               Break;
+            When = 2
+               &lumberCount = &lumberCount + 1;
+               Break;
+            End-Evaluate;
+         End-If;
+         /* Top Right */
+         If (&y - 1 >= 1 And
+               &x + 1 <= &grid [&y].Len) Then
+            
+            Evaluate &grid [&y - 1, &x + 1].State
+            When = 1
+               &treeCount = &treeCount + 1;
+               Break;
+            When = 2
+               &lumberCount = &lumberCount + 1;
+               Break;
+            End-Evaluate;
+         End-If;
+         /* Bottom */
+         If (&y + 1 <= &grid.Len) Then
+            
+            Evaluate &grid [&y + 1, &x].State
+            When = 1
+               &treeCount = &treeCount + 1;
+               Break;
+            When = 2
+               &lumberCount = &lumberCount + 1;
+               Break;
+            End-Evaluate;
+         End-If;
+         /* Bottom Left */
+         If (&y + 1 <= &grid.Len And
+               &x - 1 >= 1) Then
+            
+            Evaluate &grid [&y + 1, &x - 1].State
+            When = 1
+               &treeCount = &treeCount + 1;
+               Break;
+            When = 2
+               &lumberCount = &lumberCount + 1;
+               Break;
+            End-Evaluate;
+         End-If;
+         /* Bottom Right */
+         If (&y + 1 <= &grid.Len And
+               &x + 1 <= &grid [&y].Len) Then
+            
+            Evaluate &grid [&y + 1, &x + 1].State
+            When = 1
+               &treeCount = &treeCount + 1;
+               Break;
+            When = 2
+               &lumberCount = &lumberCount + 1;
+               Break;
+            End-Evaluate;
+         End-If;
+         /* Left */
+         If (&x - 1 >= 1) Then
+            
+            Evaluate &grid [&y, &x - 1].State
+            When = 1
+               &treeCount = &treeCount + 1;
+               Break;
+            When = 2
+               &lumberCount = &lumberCount + 1;
+               Break;
+            End-Evaluate;
+         End-If;
+         /* Right */
+         If (&x + 1 <= &grid [&y].Len) Then
+            
+            Evaluate &grid [&y, &x + 1].State
+            When = 1
+               &treeCount = &treeCount + 1;
+               Break;
+            When = 2
+               &lumberCount = &lumberCount + 1;
+               Break;
+            End-Evaluate;
+         End-If;
+         
+         Evaluate &grid [&y, &x].State
+         When = 0
+            If (&treeCount >= 3) Then
+               &grid [&y, &x].NextState = 1;
+            Else
+               &grid [&y, &x].NextState = 0;
+            End-If;
+            Break;
+         When = 1
+            
+            
+            If (&lumberCount >= 3) Then
+               &grid [&y, &x].NextState = 2;
+            Else
+               &grid [&y, &x].NextState = 1;
+            End-If;
+            Break;
+         When = 2
+            If (&lumberCount >= 1 And
+                  &treeCount >= 1) Then
+               &grid [&y, &x].NextState = 2;
+            Else
+               &grid [&y, &x].NextState = 0;
+            End-If;
+            Break;
+         End-Evaluate;
+         rem %Response.Write(&x | ", " | &y | " Tree Count: " | &treeCount | " Lumber Count: " | &lumberCount | "<br />");
+         rem %Response.Write(&x | ", " | &y | " State: " | &grid [&y, &x].State | " Next State: " | &grid [&y, &x].NextState | "<br />");
+      End-For;
+   End-For;
+   Local string &gridHash = "";
+   For &y = 1 To &grid.Len
+      
+      For &x = 1 To &grid [&y].Len
+         &grid [&y, &x].State = &grid [&y, &x].NextState;
+         &gridHash = &gridHash | &grid [&y, &x].NextState;
+      End-For;
+   End-For;
+   
+   Return Hash(&gridHash);
+   
+end-method;
+
+method SolvePart1
+   /+ Returns String +/
+   /+ Extends/implements TS_AOC2018:Day.SolvePart1 +/
+   Local integer &x, &y;
+   For &x = 1 To 10
+      Local string &hash = %This.RunMinute();
+   End-For;
+   
+   Local integer &treeCount, &lumberCount;
+   For &y = 1 To &grid.Len
+      
+      For &x = 1 To &grid [&y].Len
+         If (&grid [&y, &x].State = 1) Then
+            &treeCount = &treeCount + 1;
+         End-If;
+         If (&grid [&y, &x].State = 2) Then
+            &lumberCount = &lumberCount + 1;
+         End-If;
+      End-For;
+   End-For;
+   
+   Return String(&treeCount * &lumberCount);
+   
+end-method;
+
+/* This exploits knowledge that we don't exceed a frequency value of 200,000 */
+method SolvePart2
+   /+ Returns String +/
+   /+ Extends/implements TS_AOC2018:Day.SolvePart2 +/
+   %This.ParseInput();
+   Local array of string &seenHashes = CreateArrayRept("", 0);
+   Local integer &iteration;
+   Local string &hash;
+   While True
+      &hash = %This.RunMinute();
+      
+      If (&seenHashes.Find(&hash) > 0) Then
+         Break;
+      End-If;
+      
+      &seenHashes.Push(&hash);
+      &iteration = &iteration + 1;
+   End-While;
+   
+   %Response.Write("Repeat was found on iterartion: " | &iteration | " which repeated iteration: " | &seenHashes.Find(&hash) | "<br />");
+   
+   %Response.Write("1000000000 is " | Mod(1000000000 - &seenHashes.Find(&hash), &iteration - &seenHashes.Find(&hash) + 1) | " off.<br />");
+   Local integer &x, &y;
+   For &x = 1 To Mod(1000000000 - &seenHashes.Find(&hash), &iteration - &seenHashes.Find(&hash) + 1)
+      &hash = %This.RunMinute();
+   End-For;
+   
+   Local integer &treeCount, &lumberCount;
+   For &y = 1 To &grid.Len
+      
+      For &x = 1 To &grid [&y].Len
+         If (&grid [&y, &x].State = 1) Then
+            &treeCount = &treeCount + 1;
+         End-If;
+         If (&grid [&y, &x].State = 2) Then
+            &lumberCount = &lumberCount + 1;
+         End-If;
+      End-For;
+   End-For;
+   
+   Return String(&treeCount * &lumberCount);
+end-method;
+
+
+
+get Description
+   /+ Returns String +/
+   Return "Settlers of The North Pole";
+end-get;
+
