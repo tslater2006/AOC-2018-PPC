@@ -1,0 +1,9 @@
+class Cell
+   property number X;
+   property number Y;
+   property string Type; /* . = open, # = wall, E = elf, G = goblin */
+   property TS_AOC2018:Support:Cell FirstStep;
+   property integer HP;
+   property integer Power;
+   property integer FloodLevel;
+end-class;
