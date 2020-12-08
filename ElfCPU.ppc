@@ -22,10 +22,11 @@ class ElfCPU
    method ElfCPU(&lines As array of string);
    method RunInstruction();
    method RunProgram();
-   
+   method RunUntilRegRead(&regNumber As number);
    method GetRegister(&regIndex As number) Returns number;
    method SetRegister(&regIndex As number, &regValue As number);
    method GetIP() Returns number;
+   method GetInstruction() Returns string;
 private
    method ParseProgram(&lines As array of string);
    
@@ -43,13 +44,19 @@ private
    instance array of array of number &parameters;
    instance number &ip;
    instance number &ipIndex;
-   
+   instance number &lastRegRead;
 end-class;
 
 method ElfCPU
    /+ &lines as Array of String +/
    &registers = CreateArrayRept(0, 6);
+   &lastRegRead = 0;
    %This.ParseProgram(&lines);
+end-method;
+
+method GetInstruction
+   /+ Returns String +/
+   Return &opCodes [&ip] | " " | &parameters [&ip].Join();
 end-method;
 
 method GetIP
@@ -60,6 +67,7 @@ end-method;
 method GetRegister
    /+ &regIndex as Number +/
    /+ Returns Number +/
+   &lastRegRead = &regIndex;
    Return &registers [&regIndex];
 end-method;
 
@@ -215,21 +223,39 @@ method borr
    /+ &a as Number, +/
    /+ &b as Number, +/
    /+ &c as Number +/
+   If (&c = 1) Then
+      rem %Response.Write("[" | &c | "] = [" | &a | "] | [" | &b | "]<br />");
+   End-If;
    &registers [&c + 1] = %This.BitwiseOr(&registers [&a + 1], &registers [&b + 1]);
+   If (&c = 1) Then
+      rem %Response.Write("[" | &c | "] = " | &registers [&c + 1] | "<br />");
+   End-If;
 end-method;
 
 method seti
    /+ &a as Number, +/
    /+ &b as Number, +/
    /+ &c as Number +/
+   If (&c = 1) Then
+      rem %Response.Write("[" | &c | "] = " | &a | "<br />");
+   End-If;
    &registers [&c + 1] = &a;
+   If (&c = 1) Then
+      rem %Response.Write("[" | &c | "] = " | &registers [&c + 1] | "<br />");
+   End-If;
 end-method;
 
 method setr
    /+ &a as Number, +/
    /+ &b as Number, +/
    /+ &c as Number +/
+   If (&c = 1) Then
+      rem %Response.Write("[" | &c | "] = [" | &a | "]<br />");
+   End-If;
    &registers [&c + 1] = &registers [&a + 1];
+   If (&c = 1) Then
+      rem %Response.Write("[" | &c | "] = " | &registers [&c + 1] | "<br />");
+   End-If;
 end-method;
 
 method gtir
@@ -302,15 +328,18 @@ method GetBits
    /+ &x as Number +/
    /+ Returns Array of Any +/
    Local array of any &bits = CreateArray();
-   
-   While (&x > 1)
+   Local number &max = 32;
+   Local number &count = 0;
+   While (&x > 1 And
+         &count < &max)
       Local integer &bit = Mod(&x, 2);
       &bits.Push(&bit);
-      &x = Idiv(&x, 2);
+      
+      &x = (&x / 2) - (0.5 * &bit);
+      &count = &count + 1;
    End-While;
-   If (&x = 1) Then
-      &bits.Push(1);
-   End-If;
+   
+   &bits.Push(Idiv(&x, 1));
    
    &bits.Reverse();
    
@@ -374,7 +403,8 @@ method BitAnd
    /+ &a as Number, +/
    /+ &b as Number +/
    /+ Returns Boolean +/
-   Return (&a = &b);
+   Return (&a = 1 And
+      &b = 1);
 end-method;
 
 method BitOr
@@ -425,5 +455,18 @@ method BitwiseOr
    
    
    Return %This.GetNumber(&orBits);
+end-method;
+
+method RunUntilRegRead
+   /+ &regNumber as Number +/
+   While &lastRegRead <> &regNumber
+      /* run the instruction */
+      %This.RunInstruction();
+      If (&ip >= &opCodes.Len) Then
+         /* we're outside of program space, break */
+         Break;
+      End-If;
+      
+   End-While;
 end-method;
 
