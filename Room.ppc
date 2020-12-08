@@ -1,0 +1,13 @@
+class Room
+   method Room();
+   
+   property number X;
+   property number Y;
+   property number Distance;
+   property array of TS_AOC2018:Support:Room Rooms;
+   
+end-class;
+
+method Room
+   %This.Rooms = CreateArrayRept(%This, 0);
+end-method;
