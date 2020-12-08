@@ -1,0 +1,173 @@
+import TS_AOC2018:Support:Room;
+import TS_AOC2018:Day;
+
+class Day20 extends TS_AOC2018:Day
+   method Day20();
+   
+   property string Description get;
+   method SolvePart1() Returns string;
+   method SolvePart2() Returns string;
+   
+private
+   
+   method ParseInput();
+   
+   method Walk(&start As TS_AOC2018:Support:Room);
+   method AddRoom(&fromRoom As TS_AOC2018:Support:Room, &x As number, &y As number) Returns TS_AOC2018:Support:Room;
+   method GetRoom(&x As number, &y As number) Returns TS_AOC2018:Support:Room;
+   instance array of string &inputChars;
+   instance number &inputIndex;
+   instance array of string &roomHash;
+   instance array of TS_AOC2018:Support:Room &roomList;
+   instance array of TS_AOC2018:Support:Room &roomStack;
+end-class;
+
+method Day20
+   %Super = create TS_AOC2018:Day("TS_AOC_DAY20_INPUT");
+   &roomHash = CreateArrayRept("", 0);
+   &roomList = CreateArrayRept(create TS_AOC2018:Support:Room(), 0);
+   &roomStack = CreateArrayRept(create TS_AOC2018:Support:Room(), 0);
+   %This.ParseInput();
+   
+end-method;
+
+method ParseInput
+   &inputChars = Split(Substring(%This.Lines [1], 2, Len(%This.Lines [1]) - 2), "");
+end-method;
+
+method SolvePart1
+   /+ Returns String +/
+   /+ Extends/implements TS_AOC2018:Day.SolvePart1 +/
+   Local integer &x, &y, &z;
+   
+   Local TS_AOC2018:Support:Room &startingRoom = create TS_AOC2018:Support:Room();
+   &startingRoom.X = 0;
+   &startingRoom.Y = 0;
+   &startingRoom.Distance = 0;
+   
+   &roomHash.Push(Hash("0,0"));
+   &roomList.Push(&startingRoom);
+   &roomStack.Push(&startingRoom);
+   
+   %This.Walk(&startingRoom);
+   
+   Local number &farthest;
+   For &x = 1 To &roomList.Len
+      
+      If (&roomList [&x].Distance > &farthest) Then
+         &farthest = &roomList [&x].Distance;
+      End-If;
+      
+   End-For;
+   Return String(&farthest);
+end-method;
+
+/* This exploits knowledge that we don't exceed a frequency value of 200,000 */
+method SolvePart2
+   /+ Returns String +/
+   /+ Extends/implements TS_AOC2018:Day.SolvePart2 +/
+   Local integer &x;
+   Local number &over1k;
+   For &x = 1 To &roomList.Len
+      
+      If (&roomList [&x].Distance > 1000) Then
+         &over1k = &over1k + 1;
+      End-If;
+      
+   End-For;
+   Return String(&over1k);
+end-method;
+
+
+get Description
+   /+ Returns String +/
+   Return "A Regular Map";
+end-get;
+
+method Walk
+   /+ &start as TS_AOC2018:Support:Room +/
+   Local TS_AOC2018:Support:Room &currentRoom = &start;
+   While True
+      &inputIndex = &inputIndex + 1;
+      If (&inputIndex > &inputChars.Len) Then
+         Break;
+      End-If;
+      
+      Local string &curChar = &inputChars [&inputIndex];
+      
+      /* if this is a directional */
+      If (&curChar = "N" Or
+            &curChar = "E" Or
+            &curChar = "W" Or
+            &curChar = "S") Then
+         Evaluate &curChar
+         When = "N"
+            &currentRoom = %This.AddRoom(&currentRoom, &currentRoom.X, &currentRoom.Y - 1);
+         When = "E"
+            &currentRoom = %This.AddRoom(&currentRoom, &currentRoom.X + 1, &currentRoom.Y);
+         When = "W"
+            &currentRoom = %This.AddRoom(&currentRoom, &currentRoom.X - 1, &currentRoom.Y);
+         When = "S"
+            &currentRoom = %This.AddRoom(&currentRoom, &currentRoom.X, &currentRoom.Y + 1);
+         End-Evaluate;
+      End-If;
+      
+      If (&curChar = "(") Then
+         /* starting a group */
+         &roomStack.Push(&currentRoom);
+      End-If;
+      
+      If (&curChar = "|") Then
+         /* shitty peek */
+         &currentRoom = &roomStack.Pop();
+         &roomStack.Push(&currentRoom);
+      End-If;
+      
+      If (&curChar = ")") Then
+         &currentRoom = &roomStack.Pop();
+      End-If;
+      
+   End-While;
+   
+end-method;
+
+method AddRoom
+   /+ &fromRoom as TS_AOC2018:Support:Room, +/
+   /+ &x as Number, +/
+   /+ &y as Number +/
+   /+ Returns TS_AOC2018:Support:Room +/
+   
+   /* does a room exist already? */
+   
+   
+   Local TS_AOC2018:Support:Room &newRoom = %This.GetRoom(&x, &y);
+   
+   If (&newRoom = Null) Then
+      &newRoom = create TS_AOC2018:Support:Room();
+      &newRoom.X = &x;
+      &newRoom.Y = &y;
+      &newRoom.Distance = &fromRoom.Distance + 1;
+      
+      &roomList.Push(&newRoom);
+      &roomHash.Push(Hash(&x | "," | &y));
+   Else
+      /*  If (&fromRoom.Distance + 1 < &newRoom.Distance) Then
+         &newRoom.Distance = &fromRoom.Distance + 1;
+      End-If; */
+   End-If;
+   Return &newRoom;
+end-method;
+
+method GetRoom
+   /+ &x as Number, +/
+   /+ &y as Number +/
+   /+ Returns TS_AOC2018:Support:Room +/
+   Local string &hash = Hash(&x | "," | &y);
+   Local number &index = &roomHash.Find(&hash);
+   If (&index > 0) Then
+      Return &roomList [&index];
+   Else
+      Return Null;
+   End-If;
+end-method;
+
